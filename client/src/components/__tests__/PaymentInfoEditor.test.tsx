@@ -98,15 +98,16 @@ describe('PaymentInfoEditor Component', () => {
     const file = new File(['dummy content'], 'qrcode.png', { type: 'image/png' });
     const fileInput = screen.getByLabelText(/上傳收款 QR Code|上傳 QR/i, { selector: 'input' });
 
-    // Mock FileReader
-    const mockFileReader = {
-      readAsDataURL: vi.fn(function (this: any) {
+    // Mock FileReader with a class to satisfy Vitest constructor requirements
+    class MockFileReader {
+      result: string | null = null;
+      onload: (() => void) | null = null;
+      readAsDataURL() {
         this.result = 'data:image/png;base64,newuploadedqr';
         if (this.onload) this.onload();
-      }),
-      result: 'data:image/png;base64,newuploadedqr',
-    };
-    vi.spyOn(window, 'FileReader').mockImplementation(() => mockFileReader as any);
+      }
+    }
+    vi.stubGlobal('FileReader', MockFileReader);
 
     fireEvent.change(fileInput, { target: { files: [file] } });
 

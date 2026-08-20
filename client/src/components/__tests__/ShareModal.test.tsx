@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ShareModal } from '../ShareModal';
 import { Room, RoundingMode } from '../../types/models';
 
@@ -20,11 +21,7 @@ const mockRoom: Room = {
 
 describe('ShareModal Component', () => {
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    });
+    vi.clearAllMocks();
   });
 
   it('renders room share code, room title, and QR code container when open', () => {
@@ -57,6 +54,9 @@ describe('ShareModal Component', () => {
   });
 
   it('copies share URL to clipboard and shows feedback', async () => {
+    const user = userEvent.setup();
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText');
+
     render(
       <ShareModal
         isOpen={true}
@@ -67,15 +67,18 @@ describe('ShareModal Component', () => {
     );
 
     const copyLinkBtn = screen.getByRole('button', { name: /複製連結|copy link/i });
-    fireEvent.click(copyLinkBtn);
+    await user.click(copyLinkBtn);
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalled();
+    expect(writeSpy).toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByText(/已複製|copied/i)).toBeInTheDocument();
     });
   });
 
   it('copies short code to clipboard', async () => {
+    const user = userEvent.setup();
+    const writeSpy = vi.spyOn(navigator.clipboard, 'writeText');
+
     render(
       <ShareModal
         isOpen={true}
@@ -86,12 +89,16 @@ describe('ShareModal Component', () => {
     );
 
     const copyCodeBtn = screen.getByRole('button', { name: /複製代碼|copy code/i });
-    fireEvent.click(copyCodeBtn);
+    await user.click(copyCodeBtn);
 
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('HOTPOT');
+    expect(writeSpy).toHaveBeenCalledWith('HOTPOT');
+    await waitFor(() => {
+      expect(screen.getByText(/已複製/i)).toBeInTheDocument();
+    });
   });
 
-  it('calls onSwitchToFriendView when friend preview button is clicked', () => {
+  it('calls onSwitchToFriendView when friend preview button is clicked', async () => {
+    const user = userEvent.setup();
     const handleSwitch = vi.fn();
     render(
       <ShareModal
@@ -103,12 +110,13 @@ describe('ShareModal Component', () => {
     );
 
     const previewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖|切換視圖/i });
-    fireEvent.click(previewBtn);
+    await user.click(previewBtn);
 
     expect(handleSwitch).toHaveBeenCalled();
   });
 
-  it('calls onClose when close button or backdrop is clicked', () => {
+  it('calls onClose when close button or backdrop is clicked', async () => {
+    const user = userEvent.setup();
     const handleClose = vi.fn();
     render(
       <ShareModal
@@ -120,7 +128,7 @@ describe('ShareModal Component', () => {
     );
 
     const closeBtn = screen.getByRole('button', { name: /關閉|close/i });
-    fireEvent.click(closeBtn);
+    await user.click(closeBtn);
 
     expect(handleClose).toHaveBeenCalled();
   });

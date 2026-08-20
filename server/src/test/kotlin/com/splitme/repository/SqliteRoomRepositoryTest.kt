@@ -135,13 +135,14 @@ class SqliteRoomRepositoryTest {
         assertEquals(1700000000000L, retrieved.updatedAt)
 
         // Verify Payment Info
-        assertNotNull(retrieved.paymentInfo)
-        assertEquals("822", retrieved.paymentInfo?.bankCode)
-        assertEquals("123456789012", retrieved.paymentInfo?.bankAccount)
-        assertEquals("https://line.me/pay/test", retrieved.paymentInfo?.linePayUrl)
-        assertEquals("https://jkos.com/pay/test", retrieved.paymentInfo?.jkoPayUrl)
-        assertEquals("https://splitme.app/qr/test.png", retrieved.paymentInfo?.customQrUrl)
-        assertEquals("Please transfer before Friday", retrieved.paymentInfo?.note)
+        val payment = retrieved.paymentInfo
+        assertNotNull(payment)
+        assertEquals("822", payment.bankCode)
+        assertEquals("123456789012", payment.bankAccount)
+        assertEquals("https://line.me/pay/test", payment.linePayUrl)
+        assertEquals("https://jkos.com/pay/test", payment.jkoPayUrl)
+        assertEquals("https://splitme.app/qr/test.png", payment.customQrUrl)
+        assertEquals("Please transfer before Friday", payment.note)
 
         // Verify Members
         assertEquals(3, retrieved.members.size)
@@ -302,8 +303,10 @@ class SqliteRoomRepositoryTest {
 
         assertEquals(1, reloaded.extraFees.size)
         assertEquals("Tip", reloaded.extraFees[0].name)
-        assertEquals("004", reloaded.paymentInfo?.bankCode)
-        assertEquals("987654321", reloaded.paymentInfo?.bankAccount)
+        val reloadedPayment = reloaded.paymentInfo
+        assertNotNull(reloadedPayment)
+        assertEquals("004", reloadedPayment.bankCode)
+        assertEquals("987654321", reloadedPayment.bankAccount)
     }
 
     @Test
