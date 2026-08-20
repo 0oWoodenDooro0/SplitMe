@@ -5,6 +5,7 @@ import {
   FeeType,
   Item,
   Member,
+  PaymentInfo,
   Room,
   RoundingMode,
   SettlementResult,
@@ -316,7 +317,10 @@ export function useRoomState() {
     }));
   }, []);
 
-  // --- Room Setting Actions ---
+  const updatePaymentInfo = useCallback((paymentInfo: PaymentInfo) => {
+    setRoom((prev) => ({ ...prev, paymentInfo }));
+  }, []);
+
   const setRoomTitle = useCallback((title: string) => {
     setRoom((prev) => ({ ...prev, title }));
   }, []);
@@ -336,6 +340,11 @@ export function useRoomState() {
       members: SAMPLE_MEMBERS,
       items: SAMPLE_ITEMS,
       extraFees: SAMPLE_FEES,
+      paymentInfo: {
+        bankCode: '822',
+        bankAccount: '123456789012',
+        note: '轉帳後請備註姓名與後五碼',
+      },
     });
   }, []);
 
@@ -350,6 +359,7 @@ export function useRoomState() {
       members: [{ id: 'host-1', name: '主揪', avatarColor: '#10B981', isHost: true }],
       items: [],
       extraFees: [],
+      paymentInfo: undefined,
     });
   }, []);
 
@@ -369,6 +379,7 @@ export function useRoomState() {
     addExtraFee,
     updateExtraFee,
     removeExtraFee,
+    updatePaymentInfo,
     setRoomTitle,
     setRoundingMode,
     loadSampleData,

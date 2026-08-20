@@ -33,6 +33,34 @@ if (typeof window !== 'undefined') {
       json: () => Promise.resolve({ status: 'ok' }),
     })
   );
+
+  // Link globalThis.navigator to window.navigator and make clipboard writable
+  if (window.navigator) {
+    try {
+      globalThis.navigator = window.navigator;
+    } catch {
+      // ignore
+    }
+
+    try {
+      let clip: any = {
+        writeText: vi.fn().mockResolvedValue(undefined),
+        readText: vi.fn().mockResolvedValue(''),
+      };
+      Object.defineProperty(window.navigator, 'clipboard', {
+        get() {
+          return this._clipboard || clip;
+        },
+        set(val) {
+          this._clipboard = val;
+          clip = val;
+        },
+        configurable: true,
+      });
+    } catch {
+      // ignore
+    }
+  }
 }
 
 afterEach(() => {

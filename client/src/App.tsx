@@ -11,6 +11,7 @@ import { FeeSettingsModal } from './components/FeeSettingsModal';
 import { ShareModal } from './components/ShareModal';
 import { FriendCheckView } from './components/FriendCheckView';
 import { HostCollabProgress } from './components/HostCollabProgress';
+import { ReceiptExportModal } from './components/ReceiptExportModal';
 import { Item, Member, RoundingMode, SplitShare } from './types/models';
 
 export const App: React.FC = () => {
@@ -35,6 +36,7 @@ export const App: React.FC = () => {
   });
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isReceiptExportModalOpen, setIsReceiptExportModalOpen] = useState(false);
 
   const {
     room,
@@ -52,6 +54,7 @@ export const App: React.FC = () => {
     addExtraFee,
     updateExtraFee,
     removeExtraFee,
+    updatePaymentInfo,
     setRoomTitle,
     setRoundingMode,
     loadSampleData,
@@ -207,7 +210,7 @@ export const App: React.FC = () => {
             <button
               type="button"
               onClick={() => setViewMode('friend')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all active:scale-95 cursor-pointer"
             >
               <Users className="w-3.5 h-3.5 text-slate-500" />
               <span>切換至朋友勾選</span>
@@ -278,12 +281,21 @@ export const App: React.FC = () => {
               roundingMode={room.roundingMode || RoundingMode.NEAREST_INTEGER}
               onRoundingModeChange={setRoundingMode}
               onOpenFeeModal={() => setIsFeeModalOpen(true)}
+              onOpenExportModal={() => setIsReceiptExportModalOpen(true)}
             />
           </div>
         </div>
       </main>
 
       {/* Modals */}
+      <ReceiptExportModal
+        isOpen={isReceiptExportModalOpen}
+        room={room}
+        settlement={settlement}
+        onClose={() => setIsReceiptExportModalOpen(false)}
+        onUpdatePaymentInfo={updatePaymentInfo}
+      />
+
       <ShareModal
         isOpen={isShareModalOpen}
         room={room}
