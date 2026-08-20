@@ -1,6 +1,69 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach, vi } from 'vitest';
+import { beforeEach, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+
+const mockCanvasContext = {
+  fillStyle: '',
+  strokeStyle: '',
+  fillRect: () => {},
+  clearRect: () => {},
+  getImageData: (_x: number, _y: number, w: number, h: number) => ({
+    data: new Uint8ClampedArray(w * h * 4),
+    width: w,
+    height: h,
+  }),
+  putImageData: () => {},
+  createImageData: (w: number, h: number) => ({
+    data: new Uint8ClampedArray(w * h * 4),
+    width: w,
+    height: h,
+  }),
+  setTransform: () => {},
+  drawImage: () => {},
+  save: () => {},
+  fillText: () => {},
+  restore: () => {},
+  beginPath: () => {},
+  moveTo: () => {},
+  lineTo: () => {},
+  closePath: () => {},
+  stroke: () => {},
+  translate: () => {},
+  scale: () => {},
+  rotate: () => {},
+  arc: () => {},
+  fill: () => {},
+  measureText: () => ({ width: 0 }),
+  transform: () => {},
+  rect: () => {},
+  clip: () => {},
+};
+
+function setupCanvasMock() {
+  if (typeof HTMLCanvasElement !== 'undefined') {
+    Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+      value: function (contextType: string) {
+        if (contextType === '2d') {
+          return mockCanvasContext;
+        }
+        return null;
+      },
+      writable: true,
+      configurable: true,
+    });
+
+    Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
+      value: function () {
+        return 'data:image/png;base64,mockcanvasdata';
+      },
+      writable: true,
+      configurable: true,
+    });
+  }
+}
+
+// Initial setup
+setupCanvasMock();
 
 // Setup robust localStorage mock for jsdom environment if missing
 if (typeof window !== 'undefined') {
@@ -61,55 +124,13 @@ if (typeof window !== 'undefined') {
       // ignore
     }
   }
-
-  // Mock HTMLCanvasElement.prototype.getContext to eliminate jsdom canvas warnings
-  if (typeof HTMLCanvasElement !== 'undefined') {
-    HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextType: string) => {
-      if (contextType === '2d') {
-        return {
-          fillStyle: '',
-          strokeStyle: '',
-          fillRect: vi.fn(),
-          clearRect: vi.fn(),
-          getImageData: vi.fn((x, y, w, h) => ({
-            data: new Uint8ClampedArray(w * h * 4),
-            width: w,
-            height: h,
-          })),
-          putImageData: vi.fn(),
-          createImageData: vi.fn((w: number, h: number) => ({
-            data: new Uint8ClampedArray(w * h * 4),
-            width: w,
-            height: h,
-          })),
-          setTransform: vi.fn(),
-          drawImage: vi.fn(),
-          save: vi.fn(),
-          fillText: vi.fn(),
-          restore: vi.fn(),
-          beginPath: vi.fn(),
-          moveTo: vi.fn(),
-          lineTo: vi.fn(),
-          closePath: vi.fn(),
-          stroke: vi.fn(),
-          translate: vi.fn(),
-          scale: vi.fn(),
-          rotate: vi.fn(),
-          arc: vi.fn(),
-          fill: vi.fn(),
-          measureText: vi.fn(() => ({ width: 0 })),
-          transform: vi.fn(),
-          rect: vi.fn(),
-          clip: vi.fn(),
-        } as any;
-      }
-      return null;
-    });
-
-    HTMLCanvasElement.prototype.toDataURL = vi.fn().mockReturnValue('data:image/png;base64,mockcanvasdata');
-  }
 }
+
+beforeEach(() => {
+  setupCanvasMock();
+});
 
 afterEach(() => {
   cleanup();
+  setupCanvasMock();
 });
