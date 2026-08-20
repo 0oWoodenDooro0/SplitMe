@@ -27,3 +27,11 @@ val buildClient by tasks.registering(Exec::class) {
     inputs.file("client/index.html")
     outputs.dir("client/dist")
 }
+
+val testClient by tasks.registering(Exec::class) {
+    dependsOn(npmInstallClient)
+    workingDir = file("client")
+    commandLine("npm", "test")
+    inputs.dir("client/src")
+    inputs.file("client/package.json")
+}
