@@ -1,16 +1,40 @@
 import React, { useEffect, useState } from 'react';
-import { Split, Server } from 'lucide-react';
+import { Split, Server, Users } from 'lucide-react';
 import { useRoomState } from './hooks/useRoomState';
+import { useRoomSync } from './hooks/useRoomSync';
 import { RoomHeader } from './components/RoomHeader';
 import { MemberBar } from './components/MemberBar';
 import { ItemList } from './components/ItemList';
 import { SettlementDashboard } from './components/SettlementDashboard';
 import { ShareWeightModal } from './components/ShareWeightModal';
 import { FeeSettingsModal } from './components/FeeSettingsModal';
+import { ShareModal } from './components/ShareModal';
+import { FriendCheckView } from './components/FriendCheckView';
+import { HostCollabProgress } from './components/HostCollabProgress';
 import { Item, Member, RoundingMode, SplitShare } from './types/models';
 
 export const App: React.FC = () => {
   const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
+  const [viewMode, setViewMode] = useState<'host' | 'friend'>(() => {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('view') === 'friend' ? 'friend' : 'host';
+    }
+    return 'host';
+  });
+
+  const [currentFriendMemberId, setCurrentFriendMemberId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('splitme_friend_member_id');
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const {
     room,
@@ -33,6 +57,18 @@ export const App: React.FC = () => {
     loadSampleData,
     resetRoom,
   } = useRoomState();
+
+  // WebSocket Live Synchronization Hook
+  const {
+    activeMemberIds,
+    status: syncStatus,
+    joinRoom,
+    toggleItemCheck,
+    lockSettlement,
+  } = useRoomSync({
+    roomId: room.id || room.code || 'local-room-1',
+    initialRoom: room,
+  });
 
   // Modals state
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
@@ -102,6 +138,54 @@ export const App: React.FC = () => {
     toggleItemSplit(itemId, memberId);
   };
 
+  const handleSelectFriendMember = (memberId: string) => {
+    setCurrentFriendMemberId(memberId);
+    try {
+      localStorage.setItem('splitme_friend_member_id', memberId);
+    } catch {
+      // ignore
+    }
+    const member = room.members.find((m) => m.id === memberId);
+    joinRoom(memberId, member?.name);
+  };
+
+  const handleFriendAddMember = (name: string) => {
+    const newMember = addMember(name);
+    setCurrentFriendMemberId(newMember.id);
+    try {
+      localStorage.setItem('splitme_friend_member_id', newMember.id);
+    } catch {
+      // ignore
+    }
+    joinRoom(newMember.id, newMember.name);
+  };
+
+  const handleFriendToggleItemCheck = (itemId: string, memberId: string, isChecked: boolean) => {
+    toggleItemSplit(itemId, memberId);
+    toggleItemCheck(itemId, memberId, isChecked);
+  };
+
+  const handleToggleLock = (isLocked: boolean) => {
+    lockSettlement(isLocked);
+  };
+
+  // If in Friend View mode, render FriendCheckView
+  if (viewMode === 'friend') {
+    return (
+      <FriendCheckView
+        room={room}
+        currentMemberId={currentFriendMemberId}
+        activeMemberIds={activeMemberIds}
+        connectionStatus={syncStatus}
+        onSelectMember={handleSelectFriendMember}
+        onAddMember={handleFriendAddMember}
+        onToggleItemCheck={handleFriendToggleItemCheck}
+        onSwitchToHostView={() => setViewMode('host')}
+      />
+    );
+  }
+
+  // Otherwise render Host View
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-900">
       {/* Top Navbar */}
@@ -115,12 +199,21 @@ export const App: React.FC = () => {
               <h1 className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
                 SplitMe
               </h1>
-              <p className="text-[11px] text-slate-500 font-medium">視覺化拖拉分帳工具</p>
+              <p className="text-[11px] text-slate-500 font-medium">極速聚餐分帳與即時協作</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setViewMode('friend')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all active:scale-95"
+            >
+              <Users className="w-3.5 h-3.5 text-slate-500" />
+              <span>切換至朋友勾選</span>
+            </button>
+
+            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
               <Server className="w-3.5 h-3.5" />
               <span>
                 後端連線:{' '}
@@ -143,9 +236,18 @@ export const App: React.FC = () => {
           onResetRoom={resetRoom}
         />
 
+        {/* Host Collaboration Progress & Presence Tracker */}
+        <HostCollabProgress
+          room={room}
+          activeMemberIds={activeMemberIds}
+          onToggleLock={handleToggleLock}
+          onOpenShare={() => setIsShareModalOpen(true)}
+        />
+
         {/* Member Avatar Badges Bar */}
         <MemberBar
           members={room.members}
+          activeMemberIds={activeMemberIds}
           onAddMember={addMember}
           onUpdateMember={updateMember}
           onRemoveMember={removeMember}
@@ -182,6 +284,16 @@ export const App: React.FC = () => {
       </main>
 
       {/* Modals */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        room={room}
+        onClose={() => setIsShareModalOpen(false)}
+        onSwitchToFriendView={() => {
+          setIsShareModalOpen(false);
+          setViewMode('friend');
+        }}
+      />
+
       <ShareWeightModal
         isOpen={weightModalState.isOpen}
         item={weightModalState.item}
