@@ -68,28 +68,33 @@ export const ItemList: React.FC<ItemListProps> = ({
           className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5"
         >
           <input
+            id="item-list-name-input"
+            aria-label="餐點品項名稱"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="餐點品項名稱 (如：松阪豬肉盤)"
-            className="flex-1 px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+            placeholder="餐點品項"
+            className="flex-1 px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden text-slate-900"
           />
 
           <div className="flex items-center gap-2">
             <div className="relative w-28">
-              <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400">$</span>
+              <span className="absolute inset-y-0 left-0 pl-2.5 flex items-center text-xs text-slate-400 font-bold">$</span>
               <input
+                id="item-list-price-input"
+                aria-label="金額"
                 type="number"
                 min="0"
                 step="any"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="金額 (如：380)"
-                className="w-full pl-6 pr-2.5 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                placeholder="金額"
+                className="w-full pl-6 pr-2.5 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden font-mono"
               />
             </div>
 
             <select
+              aria-label="墊付人"
               value={payerId || (members[0]?.id ?? '')}
               onChange={(e) => setPayerId(e.target.value)}
               className="px-2.5 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-hidden text-slate-700 cursor-pointer"
@@ -105,7 +110,7 @@ export const ItemList: React.FC<ItemListProps> = ({
               type="submit"
               disabled={!name.trim() || !price || parseFloat(price) <= 0}
               aria-label="新增品項"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors shrink-0 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors shrink-0 shadow-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>新增品項</span>

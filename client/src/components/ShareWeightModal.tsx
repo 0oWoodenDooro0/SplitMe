@@ -93,7 +93,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
             <div>
               <h3 className="text-sm font-bold text-slate-900">設定分攤份數與金額</h3>
               <p className="text-[11px] text-slate-500">
-                品項：<span className="font-semibold text-slate-700">{item.name}</span> ({formatCurrency(item.price)})
+                品項：<span className="font-semibold text-slate-700">{item.name}</span> {formatCurrency(item.price)}
               </p>
             </div>
           </div>
@@ -101,7 +101,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="關閉"
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -117,7 +117,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
                 ? `指定金額 ${formatCurrency(parseFloat(exactAmount) || 0)}`
                 : mode === SplitType.WEIGHTED
                 ? `份數倍率 ${weight}x`
-                : '一般等額分攤 (1x)'}
+                : '一般等額分攤 1x'}
             </p>
           </div>
         </div>
@@ -127,19 +127,19 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
           <button
             type="button"
             onClick={() => setMode(SplitType.WEIGHTED)}
-            className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+            className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               mode !== SplitType.EXACT_AMOUNT
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Scale className="w-3.5 h-3.5" />
-            <span>份數倍率 (加權)</span>
+            <span>份數倍率</span>
           </button>
           <button
             type="button"
             onClick={() => setMode(SplitType.EXACT_AMOUNT)}
-            className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+            className={`py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
               mode === SplitType.EXACT_AMOUNT
                 ? 'bg-white text-slate-900 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
@@ -153,9 +153,6 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
         {/* Mode Content */}
         {mode !== SplitType.EXACT_AMOUNT ? (
           <div className="space-y-3">
-            <label className="block text-xs font-medium text-slate-700">
-              選擇加權倍率 (例如食量大 2x、只吃半份 0.5x)：
-            </label>
             <div className="grid grid-cols-5 gap-1.5">
               {PRESET_WEIGHTS.map((w) => (
                 <button
@@ -165,7 +162,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
                     setWeight(w);
                     setMode(w === 1.0 ? SplitType.EQUAL : SplitType.WEIGHTED);
                   }}
-                  className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                  className={`py-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
                     weight === w
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs scale-105'
                       : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
@@ -179,6 +176,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
             <div className="flex items-center gap-2 pt-1">
               <span className="text-xs text-slate-500">自訂倍率：</span>
               <input
+                aria-label="自訂倍率"
                 type="number"
                 step="0.1"
                 min="0.1"
@@ -195,24 +193,21 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-slate-700">
-              輸入固定指定承擔金額 (剩餘金額將由其餘成員平分)：
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">
-                $
-              </div>
-              <input
-                type="number"
-                min="0"
-                max={item.price}
-                value={exactAmount}
-                onChange={(e) => setExactAmount(e.target.value)}
-                placeholder="輸入指定分攤金額 (如：250)"
-                className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
-              />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 text-xs">
+              $
             </div>
+            <input
+              id="exact-amount-input"
+              aria-label="指定金額"
+              type="number"
+              min="0"
+              max={item.price}
+              value={exactAmount}
+              onChange={(e) => setExactAmount(e.target.value)}
+              placeholder="指定金額"
+              className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-hidden font-mono"
+            />
           </div>
         )}
 
@@ -222,7 +217,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
             type="button"
             onClick={handleRemove}
             aria-label="移出分攤"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>移出分攤</span>
@@ -232,7 +227,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
               取消
             </button>
@@ -240,7 +235,7 @@ export const ShareWeightModal: React.FC<ShareWeightModalProps> = ({
               type="button"
               onClick={handleSave}
               aria-label="儲存設定"
-              className="inline-flex items-center gap-1 px-4 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors"
+              className="inline-flex items-center gap-1 px-4 py-1.5 text-xs font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-xs transition-colors cursor-pointer"
             >
               <Check className="w-3.5 h-3.5" />
               <span>儲存設定</span>

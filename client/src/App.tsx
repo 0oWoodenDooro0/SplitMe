@@ -1,21 +1,31 @@
-import React, { useEffect, useState } from 'react';
-import { Split, Server, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  Split,
+  Users,
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+} from 'lucide-react';
 import { useRoomState } from './hooks/useRoomState';
 import { useRoomSync } from './hooks/useRoomSync';
-import { RoomHeader } from './components/RoomHeader';
-import { MemberBar } from './components/MemberBar';
-import { ItemList } from './components/ItemList';
-import { SettlementDashboard } from './components/SettlementDashboard';
+import { Step1HostName } from './components/steps/Step1HostName';
+import { Step2ModeSelect } from './components/steps/Step2ModeSelect';
+import { Step3MemberList } from './components/steps/Step3MemberList';
+import { Step4ItemInput } from './components/steps/Step4ItemInput';
+import { Step5SplitAssign } from './components/steps/Step5SplitAssign';
+import { Step6SettlementCalc } from './components/steps/Step6SettlementCalc';
+import { Step7ReceiptImage } from './components/steps/Step7ReceiptImage';
 import { ShareWeightModal } from './components/ShareWeightModal';
 import { FeeSettingsModal } from './components/FeeSettingsModal';
 import { ShareModal } from './components/ShareModal';
-import { FriendCheckView } from './components/FriendCheckView';
-import { HostCollabProgress } from './components/HostCollabProgress';
 import { ReceiptExportModal } from './components/ReceiptExportModal';
+import { FriendCheckView } from './components/FriendCheckView';
 import { Item, Member, RoundingMode, SplitShare } from './types/models';
 
 export const App: React.FC = () => {
-  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [wizardMode, setWizardMode] = useState<'live' | 'offline'>('live');
+
   const [viewMode, setViewMode] = useState<'host' | 'friend'>(() => {
     if (typeof window !== 'undefined' && window.location?.search) {
       const params = new URLSearchParams(window.location.search);
@@ -37,6 +47,7 @@ export const App: React.FC = () => {
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isReceiptExportModalOpen, setIsReceiptExportModalOpen] = useState(false);
+  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
 
   const {
     room,
@@ -73,8 +84,6 @@ export const App: React.FC = () => {
     initialRoom: room,
   });
 
-  // Modals state
-  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
   const [weightModalState, setWeightModalState] = useState<{
     isOpen: boolean;
     item: Item | null;
@@ -87,24 +96,12 @@ export const App: React.FC = () => {
     split: null,
   });
 
-  useEffect(() => {
-    let isMounted = true;
-    fetch('/api/health')
-      .then((res) => {
-        if (res.ok) return res.json();
-        throw new Error('Server returned non-200');
-      })
-      .then(() => {
-        if (isMounted) setServerStatus('connected');
-      })
-      .catch(() => {
-        if (isMounted) setServerStatus('offline');
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const handleUpdateHostName = (name: string) => {
+    const hostMember = room.members.find((m) => m.isHost) || room.members[0];
+    if (hostMember) {
+      updateMember(hostMember.id, { name });
+    }
+  };
 
   const handleOpenWeightModal = (itemId: string, memberId: string) => {
     const item = room.items.find((i) => i.id === itemId) || null;
@@ -172,6 +169,19 @@ export const App: React.FC = () => {
     lockSettlement(isLocked);
   };
 
+  const handleNextStep = () => {
+    setCurrentStep((prev) => Math.min(7, prev + 1));
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep((prev) => Math.max(1, prev - 1));
+  };
+
+  const handleFinishAndReset = () => {
+    resetRoom();
+    setCurrentStep(1);
+  };
+
   // If in Friend View mode, render FriendCheckView
   if (viewMode === 'friend') {
     return (
@@ -188,21 +198,19 @@ export const App: React.FC = () => {
     );
   }
 
-  // Otherwise render Host View
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-900">
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+      {/* Top Header Navbar */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
-              <Split className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-xs">
+              <Split className="w-4 h-4" />
             </div>
             <div>
-              <h1 className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
+              <h1 className="text-base font-extrabold text-slate-900 tracking-tight leading-none">
                 SplitMe
               </h1>
-              <p className="text-[11px] text-slate-500 font-medium">極速聚餐分帳與即時協作</p>
             </div>
           </div>
 
@@ -215,79 +223,131 @@ export const App: React.FC = () => {
               <Users className="w-3.5 h-3.5 text-slate-500" />
               <span>切換至朋友勾選</span>
             </button>
-
-            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-              <Server className="w-3.5 h-3.5" />
-              <span>
-                後端連線:{' '}
-                {serverStatus === 'checking' && <span className="text-amber-500">連線中...</span>}
-                {serverStatus === 'connected' && <span className="text-emerald-600 font-semibold">正常</span>}
-                {serverStatus === 'offline' && <span className="text-slate-400">離線 (本機速算模式)</span>}
-              </span>
-            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Workspace Layout */}
-      <main className="max-w-5xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
-        {/* Room Header & Quick Sample Controls */}
-        <RoomHeader
-          room={room}
-          onUpdateTitle={setRoomTitle}
-          onLoadSampleData={loadSampleData}
-          onResetRoom={resetRoom}
-        />
+      {/* Main Wizard Area */}
+      <main className="max-w-3xl mx-auto px-4 py-5 flex-1 w-full space-y-4">
+        {/* Step Views */}
+        <div className="min-h-[420px]">
+          {currentStep === 1 && (
+            <Step1HostName
+              room={room}
+              onUpdateTitle={setRoomTitle}
+              onUpdateHostName={handleUpdateHostName}
+              onLoadSampleData={loadSampleData}
+              onResetRoom={resetRoom}
+            />
+          )}
 
-        {/* Host Collaboration Progress & Presence Tracker */}
-        <HostCollabProgress
-          room={room}
-          activeMemberIds={activeMemberIds}
-          onToggleLock={handleToggleLock}
-          onOpenShare={() => setIsShareModalOpen(true)}
-        />
+          {currentStep === 2 && (
+            <Step2ModeSelect
+              selectedMode={wizardMode}
+              onSelectMode={setWizardMode}
+              roomCode={room.code || room.id}
+            />
+          )}
 
-        {/* Member Avatar Badges Bar */}
-        <MemberBar
-          members={room.members}
-          activeMemberIds={activeMemberIds}
-          onAddMember={addMember}
-          onUpdateMember={updateMember}
-          onRemoveMember={removeMember}
-        />
+          {currentStep === 3 && (
+            <Step3MemberList
+              members={room.members}
+              activeMemberIds={activeMemberIds}
+              onAddMember={addMember}
+              onUpdateMember={updateMember}
+              onRemoveMember={removeMember}
+            />
+          )}
 
-        {/* Main 2-Column Responsive Workspace */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Items List & Drag Split (7 cols) */}
-          <div className="lg:col-span-7 space-y-4">
-            <ItemList
+          {currentStep === 4 && (
+            <Step4ItemInput
               items={room.items}
               members={room.members}
               onAddItem={addItem}
               onUpdateItem={updateItem}
               onRemoveItem={removeItem}
+              onOpenFeeModal={() => setIsFeeModalOpen(true)}
+              totalFeeAmount={settlement.totalFeeAmount}
+            />
+          )}
+
+          {currentStep === 5 && (
+            <Step5SplitAssign
+              room={room}
+              activeMemberIds={activeMemberIds}
+              mode={wizardMode}
               onToggleSplit={toggleItemSplit}
               onSetAllSplit={setAllItemSplit}
               onClearSplit={clearItemSplit}
               onOpenWeightModal={handleOpenWeightModal}
+              onToggleLock={handleToggleLock}
+              onOpenShare={() => setIsShareModalOpen(true)}
+              onUpdateItem={updateItem}
+              onRemoveItem={removeItem}
             />
-          </div>
+          )}
 
-          {/* Right Column: Settlement Dashboard & Transfers (5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <SettlementDashboard
+          {currentStep === 6 && (
+            <Step6SettlementCalc
               settlement={settlement}
               members={room.members}
               roundingMode={room.roundingMode || RoundingMode.NEAREST_INTEGER}
               onRoundingModeChange={setRoundingMode}
               onOpenFeeModal={() => setIsFeeModalOpen(true)}
-              onOpenExportModal={() => setIsReceiptExportModalOpen(true)}
             />
-          </div>
+          )}
+
+          {currentStep === 7 && (
+            <Step7ReceiptImage
+              room={room}
+              settlement={settlement}
+              onUpdatePaymentInfo={updatePaymentInfo}
+              onResetRoom={handleFinishAndReset}
+            />
+          )}
         </div>
       </main>
 
-      {/* Modals */}
+      {/* Bottom Sticky Action Bar */}
+      <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-lg">
+        <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handlePrevStep}
+            disabled={currentStep === 1}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-all shadow-2xs cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>上一步</span>
+          </button>
+
+          <div className="text-xs font-bold text-slate-500">
+            步驟 <span className="text-emerald-600 font-extrabold">{currentStep}</span> / 7
+          </div>
+
+          {currentStep < 7 ? (
+            <button
+              type="button"
+              onClick={handleNextStep}
+              className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl transition-all shadow-xs cursor-pointer"
+            >
+              <span>下一步</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFinishAndReset}
+              className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl transition-all shadow-xs cursor-pointer"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>建立新聚餐</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Global Modals */}
       <ReceiptExportModal
         isOpen={isReceiptExportModalOpen}
         room={room}
@@ -327,8 +387,8 @@ export const App: React.FC = () => {
       />
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-400">
-        © 2026 — Kotlin Ktor + React 19 Monorepo
+      <footer className="border-t border-slate-200 bg-white py-2.5 px-4 text-center text-xs text-slate-400">
+        © 2026
       </footer>
     </div>
   );

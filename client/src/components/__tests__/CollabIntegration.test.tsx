@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { App } from '../../App';
 
 class MockWebSocket {
@@ -58,40 +59,37 @@ describe('Collaboration End-to-End Integration', () => {
   });
 
   it('allows host to open share modal and switch between host view and friend view', async () => {
-    await act(async () => {
-      render(<App />);
-    });
+    const user = userEvent.setup();
+    render(<App />);
 
-    // 1. Open Share Modal
-    const shareBtn = screen.getByRole('button', { name: /邀請朋友協作|分享協作|分享/i });
-    act(() => {
-      fireEvent.click(shareBtn);
-    });
+    // Navigate to Step 5 (Split & Share)
+    for (let i = 1; i <= 4; i++) {
+      await user.click(screen.getByRole('button', { name: /下一步/i }));
+    }
+
+    // 1. Open Share Modal in Step 5
+    const shareBtn = screen.getByRole('button', { name: /邀請朋友協作|分享協作|分享|房間 QR/i });
+    await user.click(shareBtn);
 
     expect(screen.getByText(/掃描 QR Code|房間短碼/i)).toBeInTheDocument();
 
     // 2. Switch to Friend View from modal
     const friendPreviewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖/i });
-    act(() => {
-      fireEvent.click(friendPreviewBtn);
-    });
+    await user.click(friendPreviewBtn);
 
     // 3. Friend view is displayed
     expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
 
     // 4. Return to Host View
     const returnToHostBtn = screen.getByRole('button', { name: /返回主揪管理|主揪模式/i });
-    act(() => {
-      fireEvent.click(returnToHostBtn);
-    });
+    await user.click(returnToHostBtn);
 
-    expect(screen.getByText(/視覺化拖拉分帳工具|成員名單/i)).toBeInTheDocument();
+    expect(screen.getByText(/品項分攤確認|成員名單/i)).toBeInTheDocument();
   });
 
   it('synchronizes friend checking and host settlement locking', async () => {
-    await act(async () => {
-      render(<App />);
-    });
+    const user = userEvent.setup();
+    render(<App />);
 
     // Connect WebSocket
     const ws = MockWebSocket.instances[0];
@@ -101,17 +99,13 @@ describe('Collaboration End-to-End Integration', () => {
       });
     }
 
-    // Switch to Friend View
+    // Switch to Friend View via header
     const viewSwitchBtn = screen.getByRole('button', { name: /切換至朋友勾選|朋友視圖/i });
-    act(() => {
-      fireEvent.click(viewSwitchBtn);
-    });
+    await user.click(viewSwitchBtn);
 
     // Select member "小明" (member-2)
     const xiaomingBtn = screen.getByRole('button', { name: /小明/i });
-    act(() => {
-      fireEvent.click(xiaomingBtn);
-    });
+    await user.click(xiaomingBtn);
 
     // Should show friend check view with identity 小明
     expect(screen.getByText(/小明/i)).toBeInTheDocument();

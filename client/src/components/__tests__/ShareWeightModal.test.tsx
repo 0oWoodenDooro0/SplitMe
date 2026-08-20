@@ -3,17 +3,23 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { ShareWeightModal } from '../ShareWeightModal';
 import { Item, Member, SplitType } from '../../types/models';
 
-const mockMember: Member = { id: 'm1', name: 'Alice', avatarColor: '#10B981' };
+const mockMember: Member = {
+  id: 'm1',
+  name: 'Alice',
+  avatarColor: '#10B981',
+  isHost: true,
+};
+
 const mockItem: Item = {
   id: 'item-1',
-  name: '招牌生魚片',
+  name: '麻辣鍋底',
   price: 600,
   paidByMemberId: 'm1',
   splits: [{ memberId: 'm1', splitType: SplitType.EQUAL, value: 1 }],
 };
 
 describe('ShareWeightModal Component', () => {
-  it('renders modal with member and item info', () => {
+  it('renders modal with item and member details', () => {
     render(
       <ShareWeightModal
         isOpen={true}
@@ -27,11 +33,11 @@ describe('ShareWeightModal Component', () => {
     );
 
     expect(screen.getByText(/設定分攤份數與金額/i)).toBeInTheDocument();
+    expect(screen.getByText('麻辣鍋底')).toBeInTheDocument();
     expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText(/招牌生魚片/i)).toBeInTheDocument();
   });
 
-  it('selects preset multiplier 1.5x and saves', () => {
+  it('allows switching to weighted multiplier mode and selecting 2x preset', () => {
     const handleSave = vi.fn();
     render(
       <ShareWeightModal
@@ -45,20 +51,20 @@ describe('ShareWeightModal Component', () => {
       />
     );
 
-    const btn15x = screen.getByRole('button', { name: '1.5x' });
-    fireEvent.click(btn15x);
+    const btn2x = screen.getByRole('button', { name: '2x' });
+    fireEvent.click(btn2x);
 
-    const saveBtn = screen.getByRole('button', { name: /儲存設定|確認|save/i });
+    const saveBtn = screen.getByRole('button', { name: /儲存設定|儲存/i });
     fireEvent.click(saveBtn);
 
     expect(handleSave).toHaveBeenCalledWith({
       memberId: 'm1',
       splitType: SplitType.WEIGHTED,
-      value: 1.5,
+      value: 2,
     });
   });
 
-  it('switches to exact amount mode, enters amount and saves', () => {
+  it('allows switching to exact amount mode and specifying 250 NTD', () => {
     const handleSave = vi.fn();
     render(
       <ShareWeightModal
@@ -72,13 +78,13 @@ describe('ShareWeightModal Component', () => {
       />
     );
 
-    const exactModeTab = screen.getByRole('button', { name: /自訂指定金額|指定金額|exact/i });
+    const exactModeTab = screen.getByRole('button', { name: /自訂指定金額|指定金額/i });
     fireEvent.click(exactModeTab);
 
-    const amountInput = screen.getByPlaceholderText(/輸入指定分攤金額/i);
+    const amountInput = screen.getByLabelText(/指定金額/i);
     fireEvent.change(amountInput, { target: { value: '250' } });
 
-    const saveBtn = screen.getByRole('button', { name: /儲存設定|確認|save/i });
+    const saveBtn = screen.getByRole('button', { name: /儲存設定|儲存/i });
     fireEvent.click(saveBtn);
 
     expect(handleSave).toHaveBeenCalledWith({
@@ -88,8 +94,8 @@ describe('ShareWeightModal Component', () => {
     });
   });
 
-  it('removes member from split when delete/remove button clicked', () => {
-    const handleRemoveFromSplit = vi.fn();
+  it('removes member from split when clicking remove button', () => {
+    const handleRemove = vi.fn();
     render(
       <ShareWeightModal
         isOpen={true}
@@ -98,13 +104,13 @@ describe('ShareWeightModal Component', () => {
         currentSplit={{ memberId: 'm1', splitType: SplitType.EQUAL, value: 1 }}
         onClose={vi.fn()}
         onSave={vi.fn()}
-        onRemoveFromSplit={handleRemoveFromSplit}
+        onRemoveFromSplit={handleRemove}
       />
     );
 
-    const removeBtn = screen.getByRole('button', { name: /移出分攤|移除|remove/i });
+    const removeBtn = screen.getByRole('button', { name: /移出分攤|移除/i });
     fireEvent.click(removeBtn);
 
-    expect(handleRemoveFromSplit).toHaveBeenCalledWith('item-1', 'm1');
+    expect(handleRemove).toHaveBeenCalledWith('item-1', 'm1');
   });
 });

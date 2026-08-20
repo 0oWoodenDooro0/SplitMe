@@ -63,7 +63,7 @@ export const ReceiptCard = forwardRef<HTMLDivElement, ReceiptCardProps>(
         {/* Grand Total Hero Banner */}
         <div className="py-5 border-b-2 border-dashed border-slate-300 text-center space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            總計金額 (Grand Total)
+            總計金額
           </span>
           <div className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono">
             {formatCurrency(settlement.grandTotal, currency)}
@@ -91,13 +91,13 @@ export const ReceiptCard = forwardRef<HTMLDivElement, ReceiptCardProps>(
             {settlement.isBalanced ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>收支完全平衡 (帳目已平)</span>
+                <span>收支完全平衡</span>
               </>
             ) : (
               <>
                 <AlertCircle className="w-4 h-4 text-amber-600" />
                 <span>
-                  帳目試算中 (差額: {formatCurrency(Math.abs(settlement.roundingRemainder || 0), currency)})
+                  帳目未平衡 {formatCurrency(Math.abs(settlement.roundingRemainder || 0), currency)}
                 </span>
               </>
             )}
@@ -136,7 +136,7 @@ export const ReceiptCard = forwardRef<HTMLDivElement, ReceiptCardProps>(
                       <span className="text-xs font-bold text-slate-900">
                         {member.name}
                         {member.isHost && (
-                          <span className="ml-1 text-[10px] text-emerald-600 font-semibold">(主揪)</span>
+                          <span className="ml-1 text-[10px] text-emerald-600 font-semibold">主揪</span>
                         )}
                       </span>
                     </div>
@@ -202,11 +202,11 @@ export const ReceiptCard = forwardRef<HTMLDivElement, ReceiptCardProps>(
                     className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-50/60 border border-indigo-100 text-xs"
                   >
                     <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                      <span className="text-slate-900">{`${fromMember.name}（轉出）`}</span>
+                      <span className="text-slate-900">{fromMember.name}</span>
                       <span className="inline-flex items-center gap-1 text-indigo-600 font-medium text-[11px]">
                         應轉帳給 <ArrowRight className="w-3.5 h-3.5" />
                       </span>
-                      <span className="text-slate-900">{`${toMember.name}（轉入）`}</span>
+                      <span className="text-slate-900">{toMember.name}</span>
                     </div>
                     <div className="font-black text-indigo-600 font-mono text-sm">
                       {formatCurrency(t.amount, currency)}

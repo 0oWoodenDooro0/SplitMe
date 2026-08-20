@@ -6,7 +6,7 @@ import {
   Check,
   Share2,
   Image as ImageIcon,
-  MessageSquare,
+  FileText,
   CreditCard,
   Sparkles,
 } from 'lucide-react';
@@ -40,20 +40,20 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const lineSummaryText = formatLineSummary(room, settlement);
+  const summaryText = formatLineSummary(room, settlement);
 
-  const handleCopyLine = () => {
+  const handleCopyText = () => {
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        navigator.clipboard.writeText(lineSummaryText);
+        navigator.clipboard.writeText(summaryText);
       }
       if (typeof navigator !== 'undefined' && (navigator as any)._clipboard?.writeText) {
-        (navigator as any)._clipboard.writeText(lineSummaryText);
+        (navigator as any)._clipboard.writeText(summaryText);
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     } catch (e) {
-      console.error('Failed to copy LINE summary:', e);
+      console.error('Failed to copy summary:', e);
     }
   };
 
@@ -88,7 +88,7 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
       try {
         await nav.share({
           title: `SplitMe 結算收據 - ${room.title || '聚餐分帳'}`,
-          text: lineSummaryText,
+          text: summaryText,
         });
         return;
       } catch (err: any) {
@@ -96,8 +96,9 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
       }
     }
 
-    // Fallback: Open LINE Web Intent
-    window.open(getLineShareUrl(lineSummaryText), '_blank');
+    // Fallback: Copy and open web share
+    handleCopyText();
+    window.open(getLineShareUrl(summaryText), '_blank');
   };
 
   const handleSavePaymentInfo = (info: PaymentInfo) => {
@@ -123,7 +124,7 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-900 leading-tight">結算收據與匯出分享</h3>
-                <p className="text-xs text-slate-500 font-medium">即時收據長圖與 LINE 排版懶人包</p>
+                <p className="text-xs text-slate-500 font-medium">即時收據長圖與文字明細</p>
               </div>
             </div>
 
@@ -176,8 +177,8 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <MessageSquare className="w-4 h-4" />
-              <span>LINE 文字</span>
+              <FileText className="w-4 h-4" />
+              <span>文字明細</span>
             </button>
           </div>
 
@@ -194,7 +195,7 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
               <div className="space-y-3">
                 <div className="relative">
                   <pre className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-xs font-mono text-slate-800 whitespace-pre-wrap leading-relaxed shadow-2xs max-h-[50vh] overflow-y-auto select-all">
-                    {lineSummaryText}
+                    {summaryText}
                   </pre>
                 </div>
               </div>
@@ -208,7 +209,7 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
                 type="button"
                 onClick={handleDownloadPng}
                 disabled={isDownloading}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 rounded-xl shadow-xs transition-all"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-50 rounded-xl shadow-xs transition-all cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>{isDownloading ? '生成長圖中...' : '下載 PNG 長圖'}</span>
@@ -216,22 +217,22 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
             ) : (
               <button
                 type="button"
-                onClick={handleCopyLine}
+                onClick={handleCopyText}
                 aria-live="polite"
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all"
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all cursor-pointer"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copied ? '已複製 LINE 懶人包！' : '複製 LINE 懶人包'}</span>
+                <span>{copied ? '已複製明細！' : '複製文字明細'}</span>
               </button>
             )}
 
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 border border-slate-300 rounded-xl transition-all shadow-2xs"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 border border-slate-300 rounded-xl transition-all shadow-2xs cursor-pointer"
             >
               <Share2 className="w-4 h-4 text-slate-600" />
-              <span>發送至 LINE / 社群分享</span>
+              <span>社群分享</span>
             </button>
           </div>
         </div>

@@ -78,13 +78,13 @@ describe('FeeSettingsModal Component', () => {
       />
     );
 
-    const nameInput = screen.getByPlaceholderText(/費用\/折扣名稱/i);
-    const amountInput = screen.getByPlaceholderText(/數值 \(% 或 \$\)/i);
+    const nameInput = screen.getByLabelText(/費用項目名稱/i);
+    const amountInput = screen.getByLabelText(/費用數值/i);
 
     fireEvent.change(nameInput, { target: { value: '早鳥折價券' } });
     fireEvent.change(amountInput, { target: { value: '-120' } });
 
-    const fixedTypeRadio = screen.getByLabelText(/固定金額 \(\$\)/i);
+    const fixedTypeRadio = screen.getByLabelText(/固定金額/i);
     fireEvent.click(fixedTypeRadio);
 
     const equalRadio = screen.getByLabelText(/全員平分/i);
