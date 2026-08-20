@@ -1,1 +1,10 @@
 /.idea/
+.gradle/
+build/
+server/build/
+server/src/main/resources/static/
+client/node_modules/
+client/dist/
+*.tsbuildinfo
+*.log
+.DS_Store
