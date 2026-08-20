@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, RotateCcw, Edit3, Check, X } from 'lucide-react';
+import { Sparkles, RotateCcw, Edit3, Check, X, Lock } from 'lucide-react';
 import { Room } from '../types/models';
 
 interface RoomHeaderProps {
@@ -25,11 +25,13 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
     setIsEditingTitle(false);
   };
 
+  const isLocked = Boolean(room.isLocked);
+
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       {/* Title & Status */}
       <div className="space-y-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isEditingTitle ? (
             <div className="flex items-center gap-1.5">
               <input
@@ -74,6 +76,13 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
           <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
             代碼: {room.code || 'LOCAL'}
           </span>
+
+          {isLocked && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+              <Lock className="w-3 h-3" />
+              <span>結算已鎖定</span>
+            </span>
+          )}
         </div>
 
         <p className="text-xs text-slate-500">
@@ -81,21 +90,21 @@ export const RoomHeader: React.FC<RoomHeaderProps> = ({
         </p>
       </div>
 
-      {/* Preset & Reset Buttons */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Preset & Action Controls */}
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
         <button
           type="button"
           onClick={onLoadSampleData}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl shadow-xs transition-all active:scale-95"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors active:scale-95"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>載入示範帳單</span>
         </button>
 
         <button
           type="button"
           onClick={onResetRoom}
-          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>清空聚餐</span>

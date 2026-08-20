@@ -6,6 +6,7 @@ import { AVATAR_PALETTE, getRandomAvatarColor } from '../utils/colors';
 
 interface MemberBarProps {
   members: Member[];
+  activeMemberIds?: string[];
   onAddMember: (name: string, avatarColor?: string) => void;
   onUpdateMember: (id: string, updates: Partial<Member>) => void;
   onRemoveMember: (id: string) => void;
@@ -13,6 +14,7 @@ interface MemberBarProps {
 
 export const MemberBar: React.FC<MemberBarProps> = ({
   members,
+  activeMemberIds = [],
   onAddMember,
   onUpdateMember,
   onRemoveMember,
@@ -142,73 +144,81 @@ export const MemberBar: React.FC<MemberBarProps> = ({
 
       {/* Member Avatar Badges List */}
       <div className="flex flex-wrap items-center gap-2.5">
-        {members.map((member) => (
-          <div
-            key={member.id}
-            className="group relative inline-flex items-center gap-1.5 pl-2 pr-1.5 py-1 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200 transition-all shadow-2xs"
-          >
-            {editingId === member.id ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  autoFocus
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  className="w-24 px-2 py-0.5 text-xs bg-white border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveEdit(member.id);
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleSaveEdit(member.id)}
-                  aria-label="儲存"
-                  className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingId(null)}
-                  aria-label="取消"
-                  className="p-1 text-slate-400 hover:bg-slate-200 rounded"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            ) : (
-              <>
-                <MemberAvatar member={member} size="sm" isDraggable={true} />
-
-                <div className="flex items-center space-x-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+        {members.map((member) => {
+          const isOnline = activeMemberIds.includes(member.id);
+          return (
+            <div
+              key={member.id}
+              className="group relative inline-flex items-center gap-1.5 pl-2 pr-1.5 py-1 bg-slate-50 hover:bg-slate-100 rounded-full border border-slate-200 transition-all shadow-2xs"
+            >
+              {editingId === member.id ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    autoFocus
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    className="w-24 px-2 py-0.5 text-xs bg-white border border-slate-300 rounded focus:ring-1 focus:ring-emerald-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveEdit(member.id);
+                      if (e.key === 'Escape') setEditingId(null);
+                    }}
+                  />
                   <button
                     type="button"
-                    onClick={() => handleStartEdit(member)}
-                    aria-label="編輯"
-                    title="編輯暱稱"
-                    className="p-1 text-slate-400 hover:text-slate-700 rounded-full hover:bg-white"
+                    onClick={() => handleSaveEdit(member.id)}
+                    aria-label="儲存"
+                    className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
                   >
-                    <Edit2 className="w-2.5 h-2.5" />
+                    <Check className="w-3.5 h-3.5" />
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => !member.isHost && onRemoveMember(member.id)}
-                    disabled={member.isHost}
-                    aria-label="刪除"
-                    title={member.isHost ? '主揪不可刪除' : '刪除成員'}
-                    className={`p-1 rounded-full hover:bg-white ${
-                      member.isHost ? 'text-slate-300 opacity-30 cursor-not-allowed' : 'text-slate-400 hover:text-rose-600'
-                    }`}
+                    onClick={() => setEditingId(null)}
+                    aria-label="取消"
+                    className="p-1 text-slate-400 hover:bg-slate-200 rounded"
                   >
-                    <Trash2 className="w-2.5 h-2.5" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
-              </>
-            )}
-          </div>
-        ))}
+              ) : (
+                <>
+                  <div className="relative">
+                    <MemberAvatar member={member} size="sm" isDraggable={true} />
+                    {isOnline && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white rounded-full" />
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(member)}
+                      aria-label="編輯"
+                      title="編輯暱稱"
+                      className="p-1 text-slate-400 hover:text-slate-700 rounded-full hover:bg-white"
+                    >
+                      <Edit2 className="w-2.5 h-2.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => !member.isHost && onRemoveMember(member.id)}
+                      disabled={member.isHost}
+                      aria-label="刪除"
+                      title={member.isHost ? '主揪不可刪除' : '刪除成員'}
+                      className={`p-1 rounded-full hover:bg-white ${
+                        member.isHost ? 'text-slate-300 opacity-30 cursor-not-allowed' : 'text-slate-400 hover:text-rose-600'
+                      }`}
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
