@@ -64,6 +64,10 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
       const dataUrl = await toPng(receiptRef.current, {
         pixelRatio: 2,
         cacheBust: true,
+        fetchRequestInit: {
+          mode: 'cors',
+          cache: 'no-cache',
+        },
       });
 
       const link = document.createElement('a');
@@ -213,6 +217,7 @@ export const ReceiptExportModal: React.FC<ReceiptExportModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopyLine}
+                aria-live="polite"
                 className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl shadow-xs transition-all"
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

@@ -261,6 +261,7 @@ export const ReceiptCard = forwardRef<HTMLDivElement, ReceiptCardProps>(
                     <img
                       src={paymentInfo.customQrUrl}
                       alt="收款 QR Code"
+                      crossOrigin="anonymous"
                       className="w-36 h-36 object-contain rounded-lg"
                     />
                   </div>
