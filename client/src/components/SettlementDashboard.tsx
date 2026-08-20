@@ -20,6 +20,7 @@ interface SettlementDashboardProps {
   roundingMode: RoundingMode;
   onRoundingModeChange: (mode: RoundingMode) => void;
   onOpenFeeModal: () => void;
+  onOpenExportModal?: () => void;
 }
 
 export const SettlementDashboard: React.FC<SettlementDashboardProps> = ({
@@ -28,6 +29,7 @@ export const SettlementDashboard: React.FC<SettlementDashboardProps> = ({
   roundingMode,
   onRoundingModeChange,
   onOpenFeeModal,
+  onOpenExportModal,
 }) => {
   const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
   const memberMap = new Map<string, Member>(members.map((m) => [m.id, m]));
@@ -51,8 +53,18 @@ export const SettlementDashboard: React.FC<SettlementDashboardProps> = ({
             </div>
           </div>
 
-          {/* Balance & Fee config button */}
-          <div className="flex items-center gap-2">
+          {/* Action buttons */}
+          <div className="flex flex-wrap items-center gap-2">
+            {onOpenExportModal && (
+              <button
+                type="button"
+                onClick={onOpenExportModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-all shadow-xs active:scale-95 cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>匯出收據</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={onOpenFeeModal}
