@@ -61,7 +61,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
             <button
               type="button"
               onClick={onSwitchToHostView}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>返回主揪管理</span>
@@ -76,7 +76,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
               <Utensils className="w-7 h-7" />
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white">{room.title}</h1>
-            <p className="text-sm text-slate-400">你是哪位聚餐成員？ (選擇你的身份)</p>
+            <p className="text-sm text-slate-400">你是哪位聚餐成員？</p>
           </div>
 
           {/* Members List */}
@@ -93,12 +93,12 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
                     onSelectMember(member.id);
                     setIsSwitchingMember(false);
                   }}
-                  className="flex items-center space-x-3 p-3 rounded-2xl bg-slate-700/60 hover:bg-emerald-600/30 hover:border-emerald-500/80 border border-slate-600/60 transition-all text-left group active:scale-98"
+                  className="flex items-center space-x-3 p-3 rounded-2xl bg-slate-700/60 hover:bg-emerald-600/30 hover:border-emerald-500/80 border border-slate-600/60 transition-all text-left group active:scale-98 cursor-pointer"
                 >
                   <MemberAvatar member={member} size="md" showName={false} />
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-bold text-slate-100 group-hover:text-emerald-300 block truncate">
-                      {member.name}{member.isHost ? ' (主揪)' : ''}
+                      {member.name} {member.isHost ? '主揪' : ''}
                     </span>
                     <span className="text-[11px] text-slate-400">
                       {activeMemberIds.includes(member.id) ? '🟢 線上' : '離線'}
@@ -112,23 +112,22 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
           {/* Add New Member Form */}
           <form
             onSubmit={handleAddNewMember}
-            className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4 space-y-2.5"
+            className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-4"
           >
-            <label className="text-xs font-semibold text-slate-400 block">
-              不在名單上？新增我的名字
-            </label>
             <div className="flex items-center gap-2">
               <input
+                id="new-friend-name-input"
+                aria-label="新增我的名字"
                 type="text"
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
-                placeholder="輸入你的名字 (如：David)"
+                placeholder="姓名"
                 className="flex-1 px-3.5 py-2 text-xs bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
               />
               <button
                 type="submit"
                 disabled={!newMemberName.trim()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-xs disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>加入聚餐</span>
@@ -160,7 +159,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsSwitchingMember(true)}
-                  className="text-[11px] text-emerald-400 hover:text-emerald-300 underline font-medium"
+                  className="text-[11px] text-emerald-400 hover:text-emerald-300 underline font-medium cursor-pointer"
                 >
                   切換身份
                 </button>
@@ -188,7 +187,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
             <button
               type="button"
               onClick={onSwitchToHostView}
-              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 transition-colors"
+              className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700 transition-colors cursor-pointer"
             >
               主揪模式
             </button>
@@ -203,7 +202,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
           <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-2xl flex items-center space-x-3 text-amber-300 shadow-sm animate-in fade-in duration-200">
             <Lock className="w-5 h-5 text-amber-400 shrink-0" />
             <div className="text-xs font-bold text-amber-300">
-              主揪已鎖定結算（目前僅供檢視，無法修改勾選狀態）
+              主揪已鎖定結算，目前僅供檢視
             </div>
           </div>
         )}
@@ -242,7 +241,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Utensils className="w-3.5 h-3.5 text-emerald-400" />
-              <span>點選你吃過的品項 (即時同步)</span>
+              <span>點選你吃過的品項</span>
             </h2>
             <span className="text-[11px] text-slate-400 font-medium">
               共 {room.items.length} 項
@@ -342,7 +341,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
         <button
           type="button"
           onClick={onSwitchToHostView}
-          className="text-emerald-400 hover:text-emerald-300 font-medium"
+          className="text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
         >
           切換回主揪管理
         </button>

@@ -93,8 +93,8 @@ describe('ReceiptCard Component', () => {
   it('renders member breakdown cards with items and net status badges', () => {
     render(<ReceiptCard room={mockRoom} settlement={mockSettlement} />);
 
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Bob').length).toBeGreaterThan(0);
     expect(screen.getByText(/需收款/i)).toBeInTheDocument();
     expect(screen.getByText(/需支付/i)).toBeInTheDocument();
     expect(screen.getAllByText('麻辣鴛鴦鍋').length).toBeGreaterThan(0);
@@ -104,9 +104,9 @@ describe('ReceiptCard Component', () => {
     render(<ReceiptCard room={mockRoom} settlement={mockSettlement} />);
 
     expect(screen.getByText(/最簡轉帳指南/i)).toBeInTheDocument();
-    expect(screen.getByText('Bob')).toBeInTheDocument();
+    expect(screen.getAllByText('Bob').length).toBeGreaterThan(0);
     expect(screen.getByText(/應轉帳給/i)).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/330/).length).toBeGreaterThan(0);
   });
 

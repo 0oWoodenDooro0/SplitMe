@@ -105,11 +105,11 @@ describe('ReceiptExportModal Component', () => {
 
     expect(screen.getByText(/結算收據與匯出分享/i)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /收據長圖/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /LINE 文字/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /文字明細|LINE 文字/i })).toBeInTheDocument();
     expect(screen.getByTestId('receipt-card')).toBeInTheDocument();
   });
 
-  it('switches to LINE text tab and shows formatted text with copy button', async () => {
+  it('switches to text tab and shows formatted text with copy button', async () => {
     const user = userEvent.setup();
     render(
       <ReceiptExportModal
@@ -121,14 +121,14 @@ describe('ReceiptExportModal Component', () => {
       />
     );
 
-    const lineTab = screen.getByRole('tab', { name: /LINE 文字/i });
-    await user.click(lineTab);
+    const textTab = screen.getByRole('tab', { name: /文字明細|LINE 文字/i });
+    await user.click(textTab);
 
     expect(screen.getByText(/週末火鍋歡聚/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /複製 LINE 懶人包/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /複製文字明細|複製 LINE 懶人包/i })).toBeInTheDocument();
   });
 
-  it('copies LINE text to clipboard when copy button is clicked', async () => {
+  it('copies text to clipboard when copy button is clicked', async () => {
     const user = userEvent.setup();
     const writeTextMock = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
@@ -147,10 +147,10 @@ describe('ReceiptExportModal Component', () => {
       />
     );
 
-    const lineTab = screen.getByRole('tab', { name: /LINE 文字/i });
-    await user.click(lineTab);
+    const textTab = screen.getByRole('tab', { name: /文字明細|LINE 文字/i });
+    await user.click(textTab);
 
-    const copyBtn = screen.getByRole('button', { name: /複製 LINE 懶人包/i });
+    const copyBtn = screen.getByRole('button', { name: /複製文字明細|複製 LINE 懶人包/i });
     await user.click(copyBtn);
 
     expect(writeTextMock).toHaveBeenCalled();
@@ -194,7 +194,7 @@ describe('ReceiptExportModal Component', () => {
       />
     );
 
-    const shareBtn = screen.getByRole('button', { name: /分享至 LINE|發送至 LINE|社群分享/i });
+    const shareBtn = screen.getByRole('button', { name: /社群分享|分享/i });
     await user.click(shareBtn);
 
     expect(shareMock).toHaveBeenCalled();

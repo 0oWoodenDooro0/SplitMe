@@ -59,13 +59,13 @@ describe('ItemList and ItemCard Components', () => {
       />
     );
 
-    const nameInput = screen.getByPlaceholderText(/餐點品項名稱/i);
-    const priceInput = screen.getByPlaceholderText(/金額/i);
+    const nameInput = screen.getByLabelText(/餐點品項名稱/i);
+    const priceInput = screen.getByLabelText(/金額/i);
 
     fireEvent.change(nameInput, { target: { value: '手切牛肉盤' } });
     fireEvent.change(priceInput, { target: { value: '380' } });
 
-    const submitBtn = screen.getByRole('button', { name: /新增品項|add item/i });
+    const submitBtn = screen.getByRole('button', { name: /新增品項|新增|add/i });
     fireEvent.click(submitBtn);
 
     expect(handleAddItem).toHaveBeenCalledWith('手切牛肉盤', 380, 'm1', ['m1', 'm2', 'm3']);
@@ -87,8 +87,8 @@ describe('ItemList and ItemCard Components', () => {
       />
     );
 
-    const payerSelect = screen.getByRole('combobox', { name: /墊付人/i });
-    fireEvent.change(payerSelect, { target: { value: 'm2' } });
+    const payerSelects = screen.getAllByRole('combobox', { name: /墊付人/i });
+    fireEvent.change(payerSelects[1], { target: { value: 'm2' } });
 
     expect(handleUpdateItem).toHaveBeenCalledWith('item-1', { paidByMemberId: 'm2' });
   });

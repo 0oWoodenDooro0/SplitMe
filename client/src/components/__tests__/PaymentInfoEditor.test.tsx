@@ -49,7 +49,7 @@ describe('PaymentInfoEditor Component', () => {
     const bankSelect = screen.getByRole('combobox', { name: /常用銀行/i });
     await user.selectOptions(bankSelect, '013');
 
-    const bankCodeInput = screen.getByPlaceholderText(/銀行代碼|如 822/i);
+    const bankCodeInput = screen.getByLabelText(/銀行代碼/i);
     expect(bankCodeInput).toHaveValue('013');
   });
 
@@ -64,9 +64,9 @@ describe('PaymentInfoEditor Component', () => {
       />
     );
 
-    const bankCodeInput = screen.getByPlaceholderText(/銀行代碼|如 822/i);
-    const bankAccountInput = screen.getByPlaceholderText(/銀行帳號/i);
-    const noteInput = screen.getByPlaceholderText(/轉帳備註/i);
+    const bankCodeInput = screen.getByLabelText(/銀行代碼/i);
+    const bankAccountInput = screen.getByLabelText(/銀行帳號/i);
+    const noteInput = screen.getByLabelText(/轉帳備註事項/i);
 
     await user.type(bankCodeInput, '808');
     await user.type(bankAccountInput, '9876543210123');
@@ -98,7 +98,6 @@ describe('PaymentInfoEditor Component', () => {
     const file = new File(['dummy content'], 'qrcode.png', { type: 'image/png' });
     const fileInput = screen.getByLabelText(/上傳收款 QR Code|上傳 QR/i, { selector: 'input' });
 
-    // Mock FileReader with a class to satisfy Vitest constructor requirements
     class MockFileReader {
       result: string | null = null;
       onload: (() => void) | null = null;

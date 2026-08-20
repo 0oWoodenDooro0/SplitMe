@@ -21,7 +21,7 @@ describe('MemberBar Component', () => {
 
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByTitle('主揪 (Host)')).toBeInTheDocument();
+    expect(screen.getAllByTitle(/主揪/i).length).toBeGreaterThan(0);
   });
 
   it('adds a new member with custom name and random color', () => {
@@ -35,10 +35,10 @@ describe('MemberBar Component', () => {
       />
     );
 
-    const addBtn = screen.getByRole('button', { name: /新增成員|add member/i });
+    const addBtn = screen.getByRole('button', { name: /新增成員|新增|add/i });
     fireEvent.click(addBtn);
 
-    const input = screen.getByPlaceholderText(/輸入成員暱稱/i);
+    const input = screen.getByLabelText(/新增成員暱稱/i);
     fireEvent.change(input, { target: { value: 'Charlie' } });
 
     const submitBtn = screen.getByRole('button', { name: /確認新增|add/i });

@@ -17,7 +17,7 @@ describe('Share & Receipt Export Integration', () => {
     } as any);
   });
 
-  it('allows host to open receipt export modal from settlement dashboard and view receipt card', async () => {
+  it('allows host to view receipt card in step 7 and verify sample items', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -25,12 +25,12 @@ describe('Share & Receipt Export Integration', () => {
     const loadSampleBtn = screen.getByRole('button', { name: /示範/i });
     await user.click(loadSampleBtn);
 
-    // Open receipt export modal from Settlement Dashboard
-    const exportBtn = screen.getByRole('button', { name: /匯出收據與分享|匯出收據/i });
-    await user.click(exportBtn);
+    // Navigate Step 1 -> Step 7
+    for (let i = 1; i <= 6; i++) {
+      await user.click(screen.getByRole('button', { name: /下一步/i }));
+    }
 
-    // Modal should be open
-    expect(screen.getByText(/結算收據與匯出分享/i)).toBeInTheDocument();
+    // Receipt card should be visible in Step 7
     expect(screen.getByTestId('receipt-card')).toBeInTheDocument();
 
     // Verify sample items in receipt

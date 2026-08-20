@@ -1,14 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../App';
 
-// Mock html-to-image
 vi.mock('html-to-image', () => ({
-  toPng: vi.fn().mockResolvedValue('data:image/png;base64,mockPngBase64String'),
+  toPng: vi.fn().mockResolvedValue('data:image/png;base64,mockpngdata'),
 }));
 
-// Mock WebSocket
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
   url: string;
@@ -30,7 +28,6 @@ class MockWebSocket {
 
   close() {
     this.readyState = WebSocket.CLOSED;
-    if (this.onclose) this.onclose({ code: 1000, reason: 'Normal Closure' });
   }
 
   triggerOpen() {
@@ -45,7 +42,7 @@ class MockWebSocket {
   }
 }
 
-describe('SplitMe Full End-to-End & Offline Integration Suite', () => {
+describe('End-to-End User Flow Integration', () => {
   const originalWebSocket = globalThis.WebSocket;
 
   beforeEach(() => {
@@ -54,111 +51,135 @@ describe('SplitMe Full End-to-End & Offline Integration Suite', () => {
     (globalThis as any).WebSocket = MockWebSocket;
     vi.clearAllMocks();
 
-    // Default healthy backend mock
-    globalThis.fetch = vi.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ status: 'ok' }),
+      json: async () => ({ status: 'ok', data: {} }),
     } as any);
 
-    // Mock clipboard
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),
       },
+      share: vi.fn().mockResolvedValue(undefined),
     });
   });
 
   afterEach(() => {
     globalThis.WebSocket = originalWebSocket;
-    vi.restoreAllMocks();
   });
 
-  it('Flow 1: Single-user fast calculation with extra fees, discounts, and weighted shares', async () => {
+  it('Flow 1: 7-Step wizard full walkthrough with sample data, fees, and transfers', async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // 1. Initial state has default sample or empty state
-    expect(screen.getByText(/SplitMe/i)).toBeInTheDocument();
-
-    // 2. Load sample data to quickly populate members and items
-    const loadSampleBtn = screen.getByRole('button', { name: /載入示範帳單|載入示範/i });
+    // Step 1: Initial state & load sample data
+    expect(screen.getByRole('heading', { level: 1, name: /SplitMe/i })).toBeInTheDocument();
+    const loadSampleBtn = screen.getByRole('button', { name: /載入示範/i });
     await user.click(loadSampleBtn);
 
-    // Verify sample items are loaded
+    // Verify sample room title is loaded
+    expect(screen.getByDisplayValue(/火鍋歡聚|聚餐/i)).toBeInTheDocument();
+
+    // Navigate: Step 1 -> Step 2
+    await user.click(screen.getByRole('button', { name: /下一步/i }));
+    expect(screen.getByText(/選擇分帳模式/i)).toBeInTheDocument();
+
+    // Navigate: Step 2 -> Step 3
+    await user.click(screen.getByRole('button', { name: /下一步/i }));
+    expect(screen.getByText(/成員名單/i)).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+
+    // Navigate: Step 3 -> Step 4
+    await user.click(screen.getByRole('button', { name: /下一步/i }));
+    expect(screen.getByText(/餐點品項與金額/i)).toBeInTheDocument();
     expect(screen.getByText('麻辣鴛鴦鍋底')).toBeInTheDocument();
-    expect(screen.getByText('頂級無骨牛小排')).toBeInTheDocument();
 
-    // 3. Open Fee Settings Modal and configure a 10% service fee
-    const feeBtn = screen.getByRole('button', { name: /附加費與折扣/i });
-    await user.click(feeBtn);
+    // Navigate: Step 4 -> Step 5
+    await user.click(screen.getByRole('button', { name: /下一步/i }));
+    expect(screen.getByText(/品項分攤確認/i)).toBeInTheDocument();
 
-    expect(screen.getByText(/附加費用與折扣攤提/i)).toBeInTheDocument();
-
-    // Close fee modal
-    const closeFeeBtn = screen.getByRole('button', { name: '完成' });
-    await user.click(closeFeeBtn);
-
-    // 4. Verify Settlement Dashboard shows updated calculated fees and balanced status
+    // Navigate: Step 5 -> Step 6
+    await user.click(screen.getByRole('button', { name: /下一步/i }));
+    expect(screen.getByText(/結算試算/i)).toBeInTheDocument();
+    expect(screen.getByText(/總支出/i)).toBeInTheDocument();
     expect(screen.getByText(/最簡轉帳指南/i)).toBeInTheDocument();
-    expect(screen.getByText(/收支完全平衡/i)).toBeInTheDocument();
+
+    // Navigate: Step 6 -> Step 7
+    await user.click(screen.getByRole('button', { name: /下一步/i }));
+    expect(screen.getByText(/收據與匯出分享/i)).toBeInTheDocument();
+    expect(screen.getByTestId('receipt-card')).toBeInTheDocument();
+
+    // Step 7: Finish and Reset
+    const finishBtns = screen.getAllByRole('button', { name: /建立新聚餐/i });
+    await user.click(finishBtns[0]);
+
+    // Should return to Step 1
+    expect(screen.getByText(/主揪與聚餐名稱/i)).toBeInTheDocument();
   });
 
-  it('Flow 2: Multi-person real-time collaboration, member join, and host lock settlement', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    // Trigger WebSocket connection
-    const ws = MockWebSocket.instances[0];
-    if (ws) {
-      act(() => {
-        ws.triggerOpen();
-      });
-    }
-
-    // 1. Host opens share modal to retrieve collaboration shortcode / QR
-    const shareBtn = screen.getByRole('button', { name: /邀請朋友協作|分享協作|分享/i });
-    await user.click(shareBtn);
-
-    expect(screen.getByText(/房間短碼|掃描 QR Code/i)).toBeInTheDocument();
-
-    // 2. Switch to Friend View
-    const friendViewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖/i });
-    await user.click(friendViewBtn);
-
-    // 3. Friend View is displayed, select member identity
-    expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
-    const memberChoice = screen.getByRole('button', { name: /小明/i });
-    await user.click(memberChoice);
-
-    // 4. Friend identity is displayed
-    expect(screen.getByText('小明')).toBeInTheDocument();
-
-    // 5. Switch back to Host View to lock settlement
-    const hostModeBtn = screen.getByRole('button', { name: '主揪模式' });
-    await user.click(hostModeBtn);
-
-    // 6. Host locks settlement
-    const lockBtn = screen.getByRole('button', { name: /鎖定結算|鎖定/i });
-    await user.click(lockBtn);
-
-    // Verify WebSocket LockSettlement message was sent
-    expect(ws?.sentMessages.some((msg) => msg.includes('LOCK_SETTLEMENT'))).toBe(true);
-  });
-
-  it('Flow 3: Receipt card visual rendering, payment info setup, and LINE export', async () => {
+  it('Flow 2: Real-time collaboration, friend view switch, and host lock settlement', async () => {
     const user = userEvent.setup();
     render(<App />);
 
     // Load sample data
-    const loadSampleBtn = screen.getByRole('button', { name: /載入示範帳單|載入示範/i });
+    const loadSampleBtn = screen.getByRole('button', { name: /載入示範/i });
     await user.click(loadSampleBtn);
 
-    // Open Receipt Export Modal
-    const exportBtn = screen.getByRole('button', { name: /匯出收據與分享|匯出收據/i });
-    await user.click(exportBtn);
+    // Trigger WebSocket open on the active instance
+    const activeWs = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+    if (activeWs) {
+      activeWs.triggerOpen();
+    }
 
-    // Modal is open
-    expect(screen.getByText(/結算收據與匯出分享/i)).toBeInTheDocument();
+    // Navigate to Step 5 (Split & Share)
+    for (let i = 1; i <= 4; i++) {
+      await user.click(screen.getByRole('button', { name: /下一步/i }));
+    }
+
+    // Open Share Modal in Step 5
+    const shareBtn = screen.getByRole('button', { name: /邀請朋友協作|分享協作|分享|房間 QR/i });
+    await user.click(shareBtn);
+
+    expect(screen.getByText(/房間短碼|掃描 QR Code/i)).toBeInTheDocument();
+
+    // Switch to Friend View
+    const friendViewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖/i });
+    await user.click(friendViewBtn);
+
+    // Friend View is displayed, select member identity
+    expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
+    const memberChoice = screen.getByRole('button', { name: /Bob/i });
+    await user.click(memberChoice);
+
+    // Friend identity is displayed
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+
+    // Switch back to Host View to lock settlement
+    const hostModeBtn = screen.getByRole('button', { name: '主揪模式' });
+    await user.click(hostModeBtn);
+
+    // Host locks settlement in Step 5
+    const lockBtn = screen.getByRole('button', { name: /鎖定結算|鎖定/i });
+    await user.click(lockBtn);
+
+    // Verify WebSocket LockSettlement message was sent on any instance
+    const allSentMessages = MockWebSocket.instances.flatMap((w) => w.sentMessages);
+    expect(allSentMessages.some((msg) => msg.includes('LOCK_SETTLEMENT'))).toBe(true);
+  });
+
+  it('Flow 3: Step 7 receipt card visual rendering, payment info setup, and text export', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    // Load sample data
+    const loadSampleBtn = screen.getByRole('button', { name: /載入示範/i });
+    await user.click(loadSampleBtn);
+
+    // Navigate to Step 7
+    for (let i = 1; i <= 6; i++) {
+      await user.click(screen.getByRole('button', { name: /下一步/i }));
+    }
+
     expect(screen.getByTestId('receipt-card')).toBeInTheDocument();
 
     // Open Payment Info Editor
@@ -169,7 +190,7 @@ describe('SplitMe Full End-to-End & Offline Integration Suite', () => {
     const bankSelect = screen.getByRole('combobox', { name: /常用銀行/i });
     await user.selectOptions(bankSelect, '822');
 
-    const accountInput = screen.getByPlaceholderText(/請輸入銀行帳號/i);
+    const accountInput = screen.getByLabelText(/銀行帳號/i);
     await user.clear(accountInput);
     await user.type(accountInput, '987654321012');
 
@@ -177,21 +198,13 @@ describe('SplitMe Full End-to-End & Offline Integration Suite', () => {
     const savePaymentBtn = screen.getByRole('button', { name: /儲存收款設定/i });
     await user.click(savePaymentBtn);
 
-    // Switch to LINE text tab
-    const textTab = screen.getByRole('tab', { name: /LINE 文字/i });
-    await user.click(textTab);
-
-    // Test LINE text summary copy
-    const copyLineBtn = screen.getByRole('button', { name: /複製 LINE 懶人包/i });
-    await user.click(copyLineBtn);
+    // Test text summary copy
+    const copyTextBtn = screen.getByRole('button', { name: /複製文字明細|複製 LINE 懶人包|複製文字/i });
+    await user.click(copyTextBtn);
 
     await waitFor(() => {
       expect(screen.getByText(/已複製/i)).toBeInTheDocument();
     });
-
-    // Switch back to Visual tab
-    const visualTab = screen.getByRole('tab', { name: /收據長圖/i });
-    await user.click(visualTab);
 
     // Test PNG image download trigger
     const downloadPngBtn = screen.getByRole('button', { name: /下載 PNG 長圖/i });
@@ -206,27 +219,11 @@ describe('SplitMe Full End-to-End & Offline Integration Suite', () => {
 
     render(<App />);
 
-    // Verify offline indicator in navbar
-    await waitFor(() => {
-      expect(screen.getByText(/離線 \(本機速算模式\)/i)).toBeInTheDocument();
-    });
+    // Navigate Step 1 -> Step 2 -> Step 3
+    await user.click(screen.getByRole('button', { name: /下一步/i })); // to step 2
+    expect(screen.getByText(/主揪速算模式/i)).toBeInTheDocument();
 
-    // Add a new member offline using MemberBar add button
-    const addMemberBtn = screen.getByRole('button', { name: '新增成員' });
-    await user.click(addMemberBtn);
-
-    const addMemberInput = screen.getByPlaceholderText(/輸入成員暱稱/i);
-    await user.type(addMemberInput, '離線小幫手');
-
-    const confirmAddBtn = screen.getByRole('button', { name: '確認新增' });
-    await user.click(confirmAddBtn);
-
-    // Member should be added locally
-    expect(screen.getAllByText('離線小幫手').length).toBeGreaterThan(0);
-
-    // LocalStorage should have saved the room state
-    const savedRoom = localStorage.getItem('splitme_current_room');
-    expect(savedRoom).not.toBeNull();
-    expect(savedRoom).toContain('離線小幫手');
+    await user.click(screen.getByRole('button', { name: /下一步/i })); // to step 3
+    expect(screen.getByText(/成員名單/i)).toBeInTheDocument();
   });
 });

@@ -89,7 +89,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fadeIn">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-lg w-full p-5 sm:p-6 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="關閉"
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -118,16 +118,16 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
             <button
               type="button"
               onClick={handleAddPreset10}
-              className="px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors"
+              className="px-2.5 py-1 text-xs font-medium text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition-colors cursor-pointer"
             >
               + 10% 服務費
             </button>
             <button
               type="button"
               onClick={handleAddPresetCoupon}
-              className="px-2.5 py-1 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+              className="px-2.5 py-1 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
             >
-              - $100 折價券 (全員平分)
+              - $100 折價券
             </button>
           </div>
         )}
@@ -163,7 +163,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
                     onClick={() => onRemoveFee(fee.id)}
                     aria-label="刪除費用"
                     title="刪除費用"
-                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white"
+                    className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-white cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -182,19 +182,23 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
+              id="fee-name-input"
+              aria-label="費用項目名稱"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="費用/折扣名稱 (如：外送費)"
+              placeholder="費用項目名稱"
               className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
             />
             <input
+              id="fee-value-input"
+              aria-label="費用數值"
               type="number"
               step="any"
               value={valueInput}
               onChange={(e) => setValueInput(e.target.value)}
-              placeholder="數值 (% 或 $)"
-              className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-hidden"
+              placeholder="費用數值"
+              className="px-3 py-2 text-xs bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-hidden font-mono"
             />
           </div>
 
@@ -209,7 +213,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
                 onChange={() => setFeeType(FeeType.PERCENTAGE)}
                 className="text-amber-600 focus:ring-amber-500"
               />
-              <span>百分比 (%)</span>
+              <span>百分比 %</span>
             </label>
             <label className="inline-flex items-center gap-1.5 cursor-pointer">
               <input
@@ -219,7 +223,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
                 onChange={() => setFeeType(FeeType.FIXED_AMOUNT)}
                 className="text-amber-600 focus:ring-amber-500"
               />
-              <span>固定金額 ($)</span>
+              <span>固定金額 $</span>
             </label>
           </div>
 
@@ -270,7 +274,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
                     key={m.id}
                     type="button"
                     onClick={() => toggleMemberSelection(m.id)}
-                    className={`px-2 py-1 rounded-md text-xs font-medium border ${
+                    className={`px-2 py-1 rounded-md text-xs font-medium border cursor-pointer ${
                       selectedMemberIds.includes(m.id)
                         ? 'bg-amber-50 border-amber-300 text-amber-900'
                         : 'bg-slate-50 border-slate-200 text-slate-400'
@@ -287,7 +291,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
             type="submit"
             disabled={!name.trim() || !valueInput}
             aria-label="新增費用項目"
-            className="w-full py-2 rounded-lg text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors shadow-xs"
+            className="w-full py-2 rounded-lg text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-colors shadow-xs cursor-pointer"
           >
             新增費用項目
           </button>
@@ -298,7 +302,7 @@ export const FeeSettingsModal: React.FC<FeeSettingsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors"
+            className="px-4 py-1.5 text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
           >
             完成
           </button>

@@ -60,7 +60,7 @@ describe('FriendCheckView Component', () => {
     );
 
     expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
-    expect(screen.getByText('Alice (主揪)')).toBeInTheDocument();
+    expect(screen.getByText(/Alice/i)).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('Charlie')).toBeInTheDocument();
   });
@@ -101,7 +101,7 @@ describe('FriendCheckView Component', () => {
       />
     );
 
-    const input = screen.getByPlaceholderText(/輸入你的名字|新增我的名字/i);
+    const input = screen.getByLabelText(/新增我的名字/i);
     fireEvent.change(input, { target: { value: 'David' } });
 
     const addBtn = screen.getByRole('button', { name: /加入聚餐|新增並加入/i });
@@ -128,19 +128,15 @@ describe('FriendCheckView Component', () => {
     expect(screen.getByText('麻辣鴛鴦鍋底')).toBeInTheDocument();
     expect(screen.getByText('頂級牛小排')).toBeInTheDocument();
 
-    // Item 1 is checked for Bob (m2)
     const item1Checkbox = screen.getByTestId('friend-check-i1');
     expect(item1Checkbox).toBeChecked();
 
-    // Item 2 is not checked for Bob (m2)
     const item2Checkbox = screen.getByTestId('friend-check-i2');
     expect(item2Checkbox).not.toBeChecked();
 
-    // Toggle Item 2
     fireEvent.click(item2Checkbox);
     expect(handleToggle).toHaveBeenCalledWith('i2', 'm2', true);
 
-    // Toggle Item 1 off
     fireEvent.click(item1Checkbox);
     expect(handleToggle).toHaveBeenCalledWith('i1', 'm2', false);
   });
