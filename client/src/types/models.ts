@@ -120,3 +120,40 @@ export interface SettlementResult {
   isBalanced: boolean;
   roundingRemainder?: number;
 }
+
+export interface CreateRoomRequest {
+  title?: string;
+  hostName?: string;
+  currency?: string;
+  roundingMode?: RoundingMode;
+  members?: Member[];
+  items?: Item[];
+  extraFees?: ExtraFee[];
+  paymentInfo?: PaymentInfo;
+}
+
+export interface LockRoomRequest {
+  isLocked?: boolean;
+}
+
+export interface ErrorResponse {
+  error: string;
+  code?: string;
+}
+
+export type WsClientMessage =
+  | { type: 'JOIN_ROOM'; memberId: string; memberName?: string }
+  | { type: 'TOGGLE_ITEM_CHECK'; itemId: string; memberId: string; isChecked: boolean }
+  | { type: 'UPDATE_ROOM'; room: Room }
+  | { type: 'LOCK_SETTLEMENT'; isLocked?: boolean }
+  | { type: 'REQUEST_SYNC'; dummy?: string };
+
+export type WsServerMessage =
+  | { type: 'SYNC_STATE'; room: Room; activeMemberIds: string[] }
+  | { type: 'MEMBER_JOINED'; memberId: string; memberName?: string; activeMemberIds: string[] }
+  | { type: 'ITEM_CHECK_TOGGLED'; itemId: string; memberId: string; isChecked: boolean; room: Room }
+  | { type: 'SETTLEMENT_LOCKED'; isLocked: boolean; room: Room }
+  | { type: 'ERROR'; message: string; code?: string };
+
+export type WsMessage = WsClientMessage | WsServerMessage;
+
