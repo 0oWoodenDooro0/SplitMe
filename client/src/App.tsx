@@ -49,13 +49,22 @@ export const App: React.FC = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
     fetch('/api/health')
       .then((res) => {
         if (res.ok) return res.json();
         throw new Error('Server returned non-200');
       })
-      .then(() => setServerStatus('connected'))
-      .catch(() => setServerStatus('offline'));
+      .then(() => {
+        if (isMounted) setServerStatus('connected');
+      })
+      .catch(() => {
+        if (isMounted) setServerStatus('offline');
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleOpenWeightModal = (itemId: string, memberId: string) => {

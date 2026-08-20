@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 // Setup robust localStorage mock for jsdom environment if missing
@@ -25,6 +25,14 @@ if (typeof window !== 'undefined') {
     value: localStorageMock,
     writable: true,
   });
+
+  // Mock global fetch for test environment
+  globalThis.fetch = vi.fn().mockImplementation(() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ status: 'ok' }),
+    })
+  );
 }
 
 afterEach(() => {
