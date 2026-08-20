@@ -1,109 +1,204 @@
-import React, { useEffect, useState } from 'react'
-import { Split, Users, Receipt, Sparkles, Server, CheckCircle2 } from 'lucide-react'
+import React, { useEffect, useState } from 'react';
+import { Split, Server } from 'lucide-react';
+import { useRoomState } from './hooks/useRoomState';
+import { RoomHeader } from './components/RoomHeader';
+import { MemberBar } from './components/MemberBar';
+import { ItemList } from './components/ItemList';
+import { SettlementDashboard } from './components/SettlementDashboard';
+import { ShareWeightModal } from './components/ShareWeightModal';
+import { FeeSettingsModal } from './components/FeeSettingsModal';
+import { Item, Member, RoundingMode, SplitShare } from './types/models';
 
 export const App: React.FC = () => {
-  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'offline'>('checking')
+  const [serverStatus, setServerStatus] = useState<'checking' | 'connected' | 'offline'>('checking');
+
+  const {
+    room,
+    settlement,
+    addMember,
+    updateMember,
+    removeMember,
+    addItem,
+    updateItem,
+    removeItem,
+    toggleItemSplit,
+    setAllItemSplit,
+    clearItemSplit,
+    updateItemSplitShare,
+    addExtraFee,
+    updateExtraFee,
+    removeExtraFee,
+    setRoomTitle,
+    setRoundingMode,
+    loadSampleData,
+    resetRoom,
+  } = useRoomState();
+
+  // Modals state
+  const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+  const [weightModalState, setWeightModalState] = useState<{
+    isOpen: boolean;
+    item: Item | null;
+    member: Member | null;
+    split: SplitShare | null;
+  }>({
+    isOpen: false,
+    item: null,
+    member: null,
+    split: null,
+  });
 
   useEffect(() => {
     fetch('/api/health')
       .then((res) => {
-        if (res.ok) return res.json()
-        throw new Error('Server returned non-200')
+        if (res.ok) return res.json();
+        throw new Error('Server returned non-200');
       })
       .then(() => setServerStatus('connected'))
-      .catch(() => setServerStatus('offline'))
-  }, [])
+      .catch(() => setServerStatus('offline'));
+  }, []);
+
+  const handleOpenWeightModal = (itemId: string, memberId: string) => {
+    const item = room.items.find((i) => i.id === itemId) || null;
+    const member = room.members.find((m) => m.id === memberId) || null;
+    const split = (item?.splits || []).find((s) => s.memberId === memberId) || null;
+
+    setWeightModalState({
+      isOpen: true,
+      item,
+      member,
+      split,
+    });
+  };
+
+  const handleCloseWeightModal = () => {
+    setWeightModalState({
+      isOpen: false,
+      item: null,
+      member: null,
+      split: null,
+    });
+  };
+
+  const handleSaveWeightSplit = (split: SplitShare) => {
+    if (weightModalState.item && weightModalState.member) {
+      updateItemSplitShare(weightModalState.item.id, split.memberId, {
+        splitType: split.splitType,
+        value: split.value,
+      });
+    }
+  };
+
+  const handleRemoveFromSplit = (itemId: string, memberId: string) => {
+    toggleItemSplit(itemId, memberId);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-900">
       {/* Top Navbar */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-xs">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-xs">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
               <Split className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-slate-900 leading-none">SplitMe</h1>
-              <p className="text-xs text-slate-500">視覺化分帳工具</p>
+              <h1 className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
+                SplitMe
+              </h1>
+              <p className="text-[11px] text-slate-500 font-medium">視覺化拖拉分帳工具</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
               <Server className="w-3.5 h-3.5" />
               <span>
                 後端連線:{' '}
                 {serverStatus === 'checking' && <span className="text-amber-500">連線中...</span>}
                 {serverStatus === 'connected' && <span className="text-emerald-600 font-semibold">正常</span>}
-                {serverStatus === 'offline' && <span className="text-rose-500">離線 (開發模式)</span>}
+                {serverStatus === 'offline' && <span className="text-slate-400">離線 (本機速算模式)</span>}
               </span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8 flex-1 w-full space-y-6">
-        {/* Hero Section */}
-        <section className="bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 border border-emerald-100 rounded-2xl p-6 sm:p-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xs">
-          <div className="space-y-2 max-w-lg">
-            <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Monorepo 架構初始化完成</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              告別繁瑣計算，最直覺的分帳體驗
-            </h2>
-            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              整合 Kotlin Ktor 後端與 React 19 前端，支援即時多人協作、拖拉分配、最少轉帳路徑與 LINE 結算分享。
-            </p>
-          </div>
-          <div className="w-20 h-20 rounded-2xl bg-white shadow-md flex items-center justify-center text-emerald-600 shrink-0">
-            <CheckCircle2 className="w-10 h-10" />
-          </div>
-        </section>
+      {/* Main Workspace Layout */}
+      <main className="max-w-5xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+        {/* Room Header & Quick Sample Controls */}
+        <RoomHeader
+          room={room}
+          onUpdateTitle={setRoomTitle}
+          onLoadSampleData={loadSampleData}
+          onResetRoom={resetRoom}
+        />
 
-        {/* Feature Grid */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-              <Users className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 mb-1">直覺拖拉分帳</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              彩色頭像徽章管理、按比例/倍率攤提及服務費與折扣精確試算。
-            </p>
-          </div>
+        {/* Member Avatar Badges Bar */}
+        <MemberBar
+          members={room.members}
+          onAddMember={addMember}
+          onUpdateMember={updateMember}
+          onRemoveMember={removeMember}
+        />
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center mb-3">
-              <Split className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 mb-1">貪婪債務精簡</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              核心演算法將多角借貸壓至最多 N-1 筆，台幣整數零頭精準調差。
-            </p>
+        {/* Main 2-Column Responsive Workspace */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Items List & Drag Split (7 cols) */}
+          <div className="lg:col-span-7 space-y-4">
+            <ItemList
+              items={room.items}
+              members={room.members}
+              onAddItem={addItem}
+              onUpdateItem={updateItem}
+              onRemoveItem={removeItem}
+              onToggleSplit={toggleItemSplit}
+              onSetAllSplit={setAllItemSplit}
+              onClearSplit={clearItemSplit}
+              onOpenWeightModal={handleOpenWeightModal}
+            />
           </div>
 
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-emerald-300 transition-colors">
-            <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center mb-3">
-              <Receipt className="w-5 h-5" />
-            </div>
-            <h3 className="font-semibold text-slate-900 mb-1">收據長圖與分享</h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              一鍵產出高解析度結算 PNG 長圖、嵌入收款碼與 LINE 友善純文字。
-            </p>
+          {/* Right Column: Settlement Dashboard & Transfers (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <SettlementDashboard
+              settlement={settlement}
+              members={room.members}
+              roundingMode={room.roundingMode || RoundingMode.NEAREST_INTEGER}
+              onRoundingModeChange={setRoundingMode}
+              onOpenFeeModal={() => setIsFeeModalOpen(true)}
+            />
           </div>
-        </section>
+        </div>
       </main>
+
+      {/* Modals */}
+      <ShareWeightModal
+        isOpen={weightModalState.isOpen}
+        item={weightModalState.item}
+        member={weightModalState.member}
+        currentSplit={weightModalState.split}
+        onClose={handleCloseWeightModal}
+        onSave={handleSaveWeightSplit}
+        onRemoveFromSplit={handleRemoveFromSplit}
+      />
+
+      <FeeSettingsModal
+        isOpen={isFeeModalOpen}
+        fees={room.extraFees || []}
+        members={room.members}
+        onClose={() => setIsFeeModalOpen(false)}
+        onAddFee={addExtraFee}
+        onUpdateFee={updateExtraFee}
+        onRemoveFee={removeExtraFee}
+      />
 
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-400">
-        SplitMe © 2026 — Kotlin Ktor + React 19 Monorepo
+        © 2026 — Kotlin Ktor + React 19 Monorepo
       </footer>
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;
