@@ -19,7 +19,11 @@ class MockWebSocket {
 
   constructor(url: string) {
     this.url = url;
+    this.readyState = WebSocket.OPEN;
     MockWebSocket.instances.push(this);
+    setTimeout(() => {
+      if (this.onopen) this.onopen({});
+    }, 0);
   }
 
   send(data: string) {
@@ -51,10 +55,28 @@ describe('End-to-End User Flow Integration', () => {
     (globalThis as any).WebSocket = MockWebSocket;
     vi.clearAllMocks();
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ status: 'ok', data: {} }),
-    } as any);
+    global.fetch = vi.fn().mockImplementation(async (url: string, init?: any) => {
+      if (init?.method === 'POST' && url === '/api/rooms') {
+        return {
+          ok: true,
+          json: async () => ({
+            id: 'server-room-1',
+            code: 'SRV123',
+            title: '聚餐分帳',
+            isLocked: false,
+            currency: 'NT$',
+            members: [],
+            items: [],
+            extraFees: [],
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ status: 'ok', data: {} }),
+      };
+    });
+
 
     Object.assign(navigator, {
       clipboard: {
@@ -137,26 +159,15 @@ describe('End-to-End User Flow Integration', () => {
     }
 
     // Open Share Modal in Step 5
-    const shareBtn = screen.getByRole('button', { name: /邀請朋友協作|分享協作|分享|房間 QR/i });
-    await user.click(shareBtn);
+    const shareBtns = screen.getAllByRole('button', { name: /邀請朋友協作|邀請分享|分享協作|分享|房間 QR/i });
+    await user.click(shareBtns[0]);
 
-    expect(screen.getByText(/房間短碼|掃描 QR Code/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/短碼代號/i).length).toBeGreaterThan(0);
 
-    // Switch to Friend View
-    const friendViewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖/i });
-    await user.click(friendViewBtn);
 
-    // Friend View is displayed, select member identity
-    expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
-    const memberChoice = screen.getByRole('button', { name: /Bob/i });
-    await user.click(memberChoice);
-
-    // Friend identity is displayed
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-
-    // Switch back to Host View to lock settlement
-    const hostModeBtn = screen.getByRole('button', { name: '主揪模式' });
-    await user.click(hostModeBtn);
+    // Close modal
+    const closeBtn = screen.getByRole('button', { name: /關閉/i });
+    await user.click(closeBtn);
 
     // Host locks settlement in Step 5
     const lockBtn = screen.getByRole('button', { name: /鎖定結算|鎖定/i });
@@ -166,6 +177,7 @@ describe('End-to-End User Flow Integration', () => {
     const allSentMessages = MockWebSocket.instances.flatMap((w) => w.sentMessages);
     expect(allSentMessages.some((msg) => msg.includes('LOCK_SETTLEMENT'))).toBe(true);
   });
+
 
   it('Flow 3: Step 7 receipt card visual rendering, payment info setup, and text export', async () => {
     const user = userEvent.setup();

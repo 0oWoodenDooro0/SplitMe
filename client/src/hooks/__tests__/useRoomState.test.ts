@@ -231,5 +231,62 @@ describe('useRoomState hook', () => {
     });
     expect(result.current.room.items.length).toBe(0);
     expect(result.current.room.members.length).toBe(1);
+    expect(result.current.room.title).toBe('');
+    expect(result.current.room.members[0].name).toBe('');
+  });
+
+  it('resets room with empty string title and host name for native placeholder support', () => {
+    const { result } = renderHook(() => useRoomState());
+
+    act(() => {
+      result.current.loadSampleData();
+    });
+    expect(result.current.room.title).not.toBe('');
+
+    act(() => {
+      result.current.resetRoom();
+    });
+    expect(result.current.room.title).toBe('');
+    expect(result.current.room.members.length).toBe(1);
+    expect(result.current.room.members[0].name).toBe('');
+    expect(result.current.room.items).toEqual([]);
+    expect(result.current.room.extraFees).toEqual([]);
+  });
+
+  it('supports setRoomDirectly to overwrite room state from backend or websocket', () => {
+    const { result } = renderHook(() => useRoomState());
+    const remoteRoom = {
+      id: 'remote-123',
+      code: 'REMOTE',
+      title: '遠端聚餐同步',
+      isLocked: false,
+      currency: 'NT$',
+      roundingMode: RoundingMode.NEAREST_INTEGER,
+      members: [
+        { id: 'm-remote-1', name: '遠端主揪', avatarColor: '#10B981', isHost: true },
+        { id: 'm-remote-2', name: '朋友小李', avatarColor: '#3B82F6', isHost: false },
+      ],
+      items: [
+        {
+          id: 'i-remote-1',
+          name: '烤雞',
+          price: 500,
+          paidByMemberId: 'm-remote-1',
+          splits: [{ memberId: 'm-remote-1', splitType: SplitType.EQUAL }],
+        },
+      ],
+      extraFees: [],
+    };
+
+    act(() => {
+      result.current.setRoomDirectly(remoteRoom);
+    });
+
+    expect(result.current.room.id).toBe('remote-123');
+    expect(result.current.room.code).toBe('REMOTE');
+    expect(result.current.room.title).toBe('遠端聚餐同步');
+    expect(result.current.room.members.length).toBe(2);
+    expect(result.current.room.items.length).toBe(1);
   });
 });
+

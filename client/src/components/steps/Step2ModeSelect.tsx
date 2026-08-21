@@ -52,10 +52,14 @@ export const Step2ModeSelect: React.FC<Step2ModeSelectProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 text-xs text-slate-400">
-            代碼: <span className="font-mono font-bold text-slate-700">{roomCode}</span>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+            <div>
+              代碼: <span className="font-mono font-bold text-slate-700">{roomCode}</span>
+            </div>
           </div>
         </div>
+
+
 
         {/* Standalone Fast Mode Card */}
         <div

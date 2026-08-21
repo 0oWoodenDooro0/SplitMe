@@ -97,25 +97,7 @@ describe('ShareModal Component', () => {
     });
   });
 
-  it('calls onSwitchToFriendView when friend preview button is clicked', async () => {
-    const user = userEvent.setup();
-    const handleSwitch = vi.fn();
-    render(
-      <ShareModal
-        isOpen={true}
-        room={mockRoom}
-        onClose={vi.fn()}
-        onSwitchToFriendView={handleSwitch}
-      />
-    );
-
-    const previewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖|切換視圖/i });
-    await user.click(previewBtn);
-
-    expect(handleSwitch).toHaveBeenCalled();
-  });
-
-  it('calls onClose when close button or backdrop is clicked', async () => {
+  it('calls onClose when close button is clicked', async () => {
     const user = userEvent.setup();
     const handleClose = vi.fn();
     render(
@@ -123,7 +105,6 @@ describe('ShareModal Component', () => {
         isOpen={true}
         room={mockRoom}
         onClose={handleClose}
-        onSwitchToFriendView={vi.fn()}
       />
     );
 
@@ -133,3 +114,4 @@ describe('ShareModal Component', () => {
     expect(handleClose).toHaveBeenCalled();
   });
 });
+

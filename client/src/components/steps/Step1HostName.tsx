@@ -19,34 +19,31 @@ export const Step1HostName: React.FC<Step1HostNameProps> = ({
 }) => {
   const hostMember = room.members.find((m) => m.isHost) || room.members[0];
 
-  const [titleInput, setTitleInput] = useState(room.title || '聚餐分帳');
-  const [hostInput, setHostInput] = useState(hostMember?.name || '主揪');
+  const [titleInput, setTitleInput] = useState(room.title || '');
+  const [hostInput, setHostInput] = useState(hostMember?.name || '');
 
   useEffect(() => {
-    setTitleInput(room.title);
+    setTitleInput(room.title || '');
   }, [room.title]);
 
   useEffect(() => {
-    if (hostMember?.name) {
-      setHostInput(hostMember.name);
-    }
+    setHostInput(hostMember?.name || '');
   }, [hostMember?.name]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setTitleInput(val);
-    if (val.trim()) {
-      onUpdateTitle(val.trim());
-    }
+    onUpdateTitle(val);
   };
 
   const handleHostChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setHostInput(val);
-    if (val.trim() && onUpdateHostName) {
-      onUpdateHostName(val.trim());
+    if (onUpdateHostName) {
+      onUpdateHostName(val);
     }
   };
+
 
   return (
     <div className="space-y-4 animate-fadeIn">

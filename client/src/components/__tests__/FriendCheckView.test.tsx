@@ -60,10 +60,11 @@ describe('FriendCheckView Component', () => {
     );
 
     expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
-    expect(screen.getByText(/Alice/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Alice/i)).not.toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('Charlie')).toBeInTheDocument();
   });
+
 
   it('selects member identity and triggers join callback', () => {
     const handleSelectMember = vi.fn();
@@ -184,4 +185,59 @@ describe('FriendCheckView Component', () => {
 
     expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
   });
+
+  it('renders identity picker in light theme styling with fallback title when title is empty', () => {
+    const emptyTitleRoom: Room = {
+      ...mockRoom,
+      title: '',
+    };
+
+    const { container } = render(
+      <FriendCheckView
+        room={emptyTitleRoom}
+        currentMemberId={null}
+        activeMemberIds={[]}
+        connectionStatus="connected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+        onSwitchToHostView={vi.fn()}
+      />
+    );
+
+    // Outer container has light theme styling
+    const rootDiv = container.firstElementChild as HTMLElement;
+    expect(rootDiv.className).toContain('bg-slate-50');
+    expect(rootDiv.className).toContain('text-slate-900');
+    expect(rootDiv.className).not.toContain('bg-slate-900');
+
+    // Displays fallback title
+    expect(screen.getByText('聚餐分帳')).toBeInTheDocument();
+  });
+
+  it('renders friend items checklist with light theme classes for unchecked and checked items', () => {
+    const { container } = render(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="connected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+        onSwitchToHostView={vi.fn()}
+      />
+    );
+
+    const rootDiv = container.firstElementChild as HTMLElement;
+    expect(rootDiv.className).toContain('bg-slate-50');
+    expect(rootDiv.className).toContain('text-slate-900');
+    expect(rootDiv.className).not.toContain('bg-slate-900');
+
+    // Header has light theme classes
+    const header = container.querySelector('header');
+    expect(header?.className).toContain('bg-white');
+    expect(header?.className).toContain('border-slate-200');
+  });
 });
+

@@ -58,7 +58,7 @@ describe('Collaboration End-to-End Integration', () => {
     vi.restoreAllMocks();
   });
 
-  it('allows host to open share modal and switch between host view and friend view', async () => {
+  it('allows host to open share modal, copy link, and close modal', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -68,46 +68,75 @@ describe('Collaboration End-to-End Integration', () => {
     }
 
     // 1. Open Share Modal in Step 5
-    const shareBtn = screen.getByRole('button', { name: /邀請朋友協作|分享協作|分享|房間 QR/i });
-    await user.click(shareBtn);
+    const shareBtns = screen.getAllByRole('button', { name: /邀請朋友協作|邀請分享|分享協作|分享|房間 QR/i });
+    await user.click(shareBtns[0]);
 
     expect(screen.getByText(/掃描 QR Code|房間短碼/i)).toBeInTheDocument();
+    expect(screen.getByText(/短碼代號/i)).toBeInTheDocument();
 
-    // 2. Switch to Friend View from modal
-    const friendPreviewBtn = screen.getByRole('button', { name: /進入朋友視圖|預覽朋友視圖/i });
-    await user.click(friendPreviewBtn);
+    // 2. Copy share link
+    const copyLinkBtn = screen.getByRole('button', { name: /複製連結/i });
+    await user.click(copyLinkBtn);
+    expect(screen.getByText(/已複製/i)).toBeInTheDocument();
 
-    // 3. Friend view is displayed
-    expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
+    // 3. Close Share Modal
+    const closeBtn = screen.getByRole('button', { name: /關閉/i });
+    await user.click(closeBtn);
 
-    // 4. Return to Host View
-    const returnToHostBtn = screen.getByRole('button', { name: /返回主揪管理|主揪模式/i });
-    await user.click(returnToHostBtn);
-
-    expect(screen.getByText(/品項分攤確認|成員名單/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/品項分攤確認/i).length).toBeGreaterThan(0);
   });
 
-  it('synchronizes friend checking and host settlement locking', async () => {
+
+  it('renders friend check view when loaded via friend url params', async () => {
+    delete (window as any).location;
+    window.location = {
+      search: '?room=TEST123&view=friend',
+      origin: 'http://localhost:5173',
+      pathname: '/',
+    } as any;
+
+    const mockRoomData = {
+      id: 'room-test',
+      code: 'TEST123',
+      title: '測試朋友聚餐',
+      isLocked: false,
+      currency: 'NT$',
+      members: [
+        { id: 'm-host', name: '主揪', avatarColor: '#10B981', isHost: true },
+        { id: 'm-f1', name: '小明', avatarColor: '#3B82F6', isHost: false },
+      ],
+      items: [
+        {
+          id: 'i-1',
+          name: '火鍋肉盤',
+          price: 250,
+          paidByMemberId: 'm-host',
+          splits: [],
+        },
+      ],
+      extraFees: [],
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockRoomData,
+    } as any);
+
     const user = userEvent.setup();
-    render(<App />);
+    await act(async () => {
+      render(<App />);
+    });
 
-    // Connect WebSocket
-    const ws = MockWebSocket.instances[0];
-    if (ws) {
-      act(() => {
-        ws.triggerOpen();
-      });
-    }
-
-    // Switch to Friend View via header
-    const viewSwitchBtn = screen.getByRole('button', { name: /切換至朋友勾選|朋友視圖/i });
-    await user.click(viewSwitchBtn);
-
-    // Select member "小明" (member-2)
+    // Host is excluded, friend 小明 is shown
+    expect(screen.queryByText('主揪 (主揪)')).not.toBeInTheDocument();
     const xiaomingBtn = screen.getByRole('button', { name: /小明/i });
     await user.click(xiaomingBtn);
 
-    // Should show friend check view with identity 小明
-    expect(screen.getByText(/小明/i)).toBeInTheDocument();
+    // Friend check view with identity 小明
+    expect(screen.getByText('小明')).toBeInTheDocument();
+    expect(screen.getByText('火鍋肉盤')).toBeInTheDocument();
   });
 });
+
+
+

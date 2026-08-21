@@ -105,11 +105,14 @@ export function useRoomSync({
               break;
             }
             case 'SETTLEMENT_LOCKED': {
-              const updatedRoom = data.room || { ...room, isLocked: data.isLocked };
-              setRoom(updatedRoom);
-              onRoomUpdated?.(updatedRoom);
+              setRoom((prev) => {
+                const updatedRoom = data.room || { ...prev, isLocked: data.isLocked };
+                onRoomUpdated?.(updatedRoom);
+                return updatedRoom;
+              });
               break;
             }
+
             case 'MEMBER_JOINED': {
               if (data.activeMemberIds) {
                 setActiveMemberIds(data.activeMemberIds);
