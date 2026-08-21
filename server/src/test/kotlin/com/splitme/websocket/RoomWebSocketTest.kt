@@ -124,6 +124,42 @@ class RoomWebSocketTest {
     }
 
     @Test
+    fun `test join room with new member name persists member and broadcasts sync state`() = withTestWsApp { client ->
+        val room = Room(
+            id = "ws-room-new-join",
+            title = "New Member Join Room",
+            code = "JOIN02",
+            members = listOf(
+                Member(id = "m1", name = "Alice", avatarColor = "#FF0000", isHost = true)
+            )
+        )
+        repository.createRoom(room)
+
+        client.webSocket("/ws/rooms/ws-room-new-join") {
+            // Receive initial SYNC_STATE
+            val initialFrame = incoming.receive() as Frame.Text
+            assertIs<WsMessage.SyncState>(json.decodeFromString<WsMessage>(initialFrame.readText()))
+
+            // Send JOIN_ROOM with new member "Charlie"
+            val joinCmd = WsMessage.JoinRoom(memberId = "m-charlie", memberName = "Charlie")
+            send(Frame.Text(json.encodeToString<WsMessage>(joinCmd)))
+
+            // Expect SYNC_STATE broadcast containing updated room with Charlie
+            val syncFrame = incoming.receive() as Frame.Text
+            val syncMsg = json.decodeFromString<WsMessage>(syncFrame.readText())
+            assertIs<WsMessage.SyncState>(syncMsg)
+            assertTrue(syncMsg.room.members.any { it.id == "m-charlie" && it.name == "Charlie" })
+            assertTrue(syncMsg.activeMemberIds.contains("m-charlie"))
+
+            // Verify in repository
+            val savedRoom = repository.getRoom("ws-room-new-join")
+            assertNotNull(savedRoom)
+            assertTrue(savedRoom.members.any { it.id == "m-charlie" && it.name == "Charlie" })
+        }
+    }
+
+
+    @Test
     fun `test toggle item check adds split share and broadcasts updated room state`() = withTestWsApp { client ->
         val member1 = Member(id = "m1", name = "Alice", avatarColor = "#FF0000", isHost = true)
         val member2 = Member(id = "m2", name = "Bob", avatarColor = "#00FF00", isHost = false)

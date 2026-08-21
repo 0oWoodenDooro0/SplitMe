@@ -287,7 +287,20 @@ export const App: React.FC = () => {
       // ignore
     }
     joinRoom(newMember.id, name);
+
+    // Sync new member to backend server
+    if (room.id && !room.id.startsWith('room-') && !room.id.startsWith('local-')) {
+      const updatedMembers = [...room.members.filter((m) => m.id !== newMember.id), newMember];
+      fetch(`/api/rooms/${encodeURIComponent(room.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...room, members: updatedMembers }),
+      }).catch((err) => {
+        console.warn('Failed to sync new friend member to server:', err);
+      });
+    }
   };
+
 
   const handleFriendToggleItemCheck = (itemId: string, memberId: string, isChecked: boolean) => {
     toggleItemCheck(itemId, memberId, isChecked);
