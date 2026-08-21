@@ -22,8 +22,8 @@ interface FriendCheckViewProps {
   onSelectMember: (memberId: string) => void;
   onAddMember: (name: string) => void;
   onToggleItemCheck: (itemId: string, memberId: string, isChecked: boolean) => void;
-  onSwitchToHostView?: () => void;
 }
+
 
 export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
   room,
@@ -216,7 +216,8 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
               ) : (
                 <WifiOff className="w-3 h-3 text-amber-600" />
               )}
-              <span>{connectionStatus === 'connected' ? '連線中' : '連線中...'}</span>
+              <span>{connectionStatus === 'connected' ? '已連線' : '連線中...'}</span>
+
             </div>
           </div>
         </div>

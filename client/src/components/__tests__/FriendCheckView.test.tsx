@@ -55,7 +55,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={handleJoin}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -77,7 +76,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={handleSelectMember}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -98,7 +96,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={handleAddMember}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -122,7 +119,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={vi.fn()}
         onToggleItemCheck={handleToggle}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -155,7 +151,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={vi.fn()}
         onToggleItemCheck={handleToggle}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -176,7 +171,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={handleSelectMember}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -201,7 +195,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -225,7 +218,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -239,5 +231,36 @@ describe('FriendCheckView Component', () => {
     expect(header?.className).toContain('bg-white');
     expect(header?.className).toContain('border-slate-200');
   });
+
+  it('displays connection status badge accurately for connected and connecting states', () => {
+    const { rerender } = render(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="connected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('已連線')).toBeInTheDocument();
+
+    rerender(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="connecting"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('連線中...')).toBeInTheDocument();
+  });
 });
+
 
