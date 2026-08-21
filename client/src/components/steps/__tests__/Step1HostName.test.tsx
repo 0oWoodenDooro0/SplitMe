@@ -99,4 +99,59 @@ describe('Step1HostName Component', () => {
     await user.click(resetBtn);
     expect(handleReset).toHaveBeenCalledTimes(1);
   });
+
+  it('renders empty inputs showing placeholders when room title and host name are empty strings', () => {
+    const emptyRoom: Room = {
+      id: 'room-empty',
+      code: 'EMPTY1',
+      title: '',
+      currency: 'NT$',
+      members: [
+        { id: 'm-empty-1', name: '', avatarColor: '#10B981', isHost: true },
+      ],
+      items: [],
+      extraFees: [],
+    };
+
+    render(
+      <Step1HostName
+        room={emptyRoom}
+        onUpdateTitle={vi.fn()}
+        onUpdateHostName={vi.fn()}
+        onLoadSampleData={vi.fn()}
+        onResetRoom={vi.fn()}
+      />
+    );
+
+    const titleInput = screen.getByPlaceholderText('聚餐名稱') as HTMLInputElement;
+    const hostInput = screen.getByPlaceholderText('主揪姓名') as HTMLInputElement;
+
+    expect(titleInput.value).toBe('');
+    expect(hostInput.value).toBe('');
+  });
+
+  it('propagates empty string to onUpdateTitle and onUpdateHostName when inputs are cleared', async () => {
+    const user = userEvent.setup();
+    const handleUpdateTitle = vi.fn();
+    const handleUpdateHostName = vi.fn();
+
+    render(
+      <Step1HostName
+        room={mockRoom}
+        onUpdateTitle={handleUpdateTitle}
+        onUpdateHostName={handleUpdateHostName}
+        onLoadSampleData={vi.fn()}
+        onResetRoom={vi.fn()}
+      />
+    );
+
+    const titleInput = screen.getByLabelText(/聚餐名稱/i);
+    await user.clear(titleInput);
+    expect(handleUpdateTitle).toHaveBeenCalledWith('');
+
+    const hostInput = screen.getByLabelText(/主揪姓名/i);
+    await user.clear(hostInput);
+    expect(handleUpdateHostName).toHaveBeenCalledWith('');
+  });
 });
+

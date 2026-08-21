@@ -55,15 +55,15 @@ describe('FriendCheckView Component', () => {
         onSelectMember={handleJoin}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
     expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
-    expect(screen.getByText(/Alice/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Alice/i)).not.toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('Charlie')).toBeInTheDocument();
   });
+
 
   it('selects member identity and triggers join callback', () => {
     const handleSelectMember = vi.fn();
@@ -76,7 +76,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={handleSelectMember}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -97,7 +96,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={handleAddMember}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -110,6 +108,35 @@ describe('FriendCheckView Component', () => {
     expect(handleAddMember).toHaveBeenCalledWith('David');
   });
 
+  it('selects existing member identity instead of adding duplicate when name matches existing member', () => {
+    const handleAddMember = vi.fn();
+    const handleSelectMember = vi.fn();
+
+    render(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId={null}
+        activeMemberIds={['m1']}
+        connectionStatus="connected"
+        onSelectMember={handleSelectMember}
+        onAddMember={handleAddMember}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText(/新增我的名字/i);
+    // Enter "bob" with different casing and whitespace
+    fireEvent.change(input, { target: { value: '  bob  ' } });
+
+    const addBtn = screen.getByRole('button', { name: /加入聚餐|新增並加入/i });
+    fireEvent.click(addBtn);
+
+    // Expect duplicate guard to select existing member 'm2' and NOT call onAddMember
+    expect(handleSelectMember).toHaveBeenCalledWith('m2');
+    expect(handleAddMember).not.toHaveBeenCalled();
+  });
+
+
   it('displays friend items checklist with current checks and estimated amount', () => {
     const handleToggle = vi.fn();
     render(
@@ -121,7 +148,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={vi.fn()}
         onToggleItemCheck={handleToggle}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -154,7 +180,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={vi.fn()}
         onAddMember={vi.fn()}
         onToggleItemCheck={handleToggle}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -175,7 +200,6 @@ describe('FriendCheckView Component', () => {
         onSelectMember={handleSelectMember}
         onAddMember={vi.fn()}
         onToggleItemCheck={vi.fn()}
-        onSwitchToHostView={vi.fn()}
       />
     );
 
@@ -184,4 +208,103 @@ describe('FriendCheckView Component', () => {
 
     expect(screen.getByText(/你是哪位聚餐成員|選擇你的身份/i)).toBeInTheDocument();
   });
+
+  it('renders identity picker in light theme styling with fallback title when title is empty', () => {
+    const emptyTitleRoom: Room = {
+      ...mockRoom,
+      title: '',
+    };
+
+    const { container } = render(
+      <FriendCheckView
+        room={emptyTitleRoom}
+        currentMemberId={null}
+        activeMemberIds={[]}
+        connectionStatus="connected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    // Outer container has light theme styling
+    const rootDiv = container.firstElementChild as HTMLElement;
+    expect(rootDiv.className).toContain('bg-slate-50');
+    expect(rootDiv.className).toContain('text-slate-900');
+    expect(rootDiv.className).not.toContain('bg-slate-900');
+
+    // Displays fallback title
+    expect(screen.getByText('聚餐分帳')).toBeInTheDocument();
+  });
+
+  it('renders friend items checklist with light theme classes for unchecked and checked items', () => {
+    const { container } = render(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="connected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    const rootDiv = container.firstElementChild as HTMLElement;
+    expect(rootDiv.className).toContain('bg-slate-50');
+    expect(rootDiv.className).toContain('text-slate-900');
+    expect(rootDiv.className).not.toContain('bg-slate-900');
+
+    // Header has light theme classes
+    const header = container.querySelector('header');
+    expect(header?.className).toContain('bg-white');
+    expect(header?.className).toContain('border-slate-200');
+  });
+
+  it('displays connection status badge accurately for connected, connecting, and disconnected states', () => {
+    const { rerender } = render(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="connected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('🟢 已連線')).toBeInTheDocument();
+
+    rerender(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="connecting"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('🟡 連線中...')).toBeInTheDocument();
+
+    rerender(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="disconnected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('🔴 已斷線')).toBeInTheDocument();
+  });
 });
+
+
+

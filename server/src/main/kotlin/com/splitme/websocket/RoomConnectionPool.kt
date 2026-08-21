@@ -121,14 +121,34 @@ class RoomConnectionPool(
                     roomSession.memberId = message.memberId
                     roomSession.memberName = message.memberName
                 }
-                val activeIds = getActiveMemberIds(roomId)
-                val event = WsMessage.MemberJoined(
-                    memberId = message.memberId,
-                    memberName = message.memberName,
-                    activeMemberIds = activeIds
-                )
-                broadcast(roomId, event)
+
+                val currentRoom = repository.getRoom(roomId)
+                if (currentRoom != null && !message.memberName.isNullOrBlank() && currentRoom.members.none { it.id == message.memberId }) {
+                    val newMember = com.splitme.model.Member(
+                        id = message.memberId,
+                        name = message.memberName,
+                        avatarColor = "#10B981",
+                        isHost = false
+                    )
+
+                    val updatedRoom = currentRoom.copy(
+                        members = currentRoom.members + newMember,
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    repository.updateRoom(updatedRoom)
+                    val activeIds = getActiveMemberIds(roomId)
+                    broadcast(roomId, WsMessage.SyncState(updatedRoom, activeIds))
+                } else {
+                    val activeIds = getActiveMemberIds(roomId)
+                    val event = WsMessage.MemberJoined(
+                        memberId = message.memberId,
+                        memberName = message.memberName,
+                        activeMemberIds = activeIds
+                    )
+                    broadcast(roomId, event)
+                }
             }
+
 
             is WsMessage.ToggleItemCheck -> {
                 val currentRoom = repository.getRoom(roomId)

@@ -18,15 +18,13 @@ import { getRandomAvatarColor } from '../utils/colors';
 const STORAGE_KEY = 'splitme_current_room';
 
 const DEFAULT_MEMBERS: Member[] = [
-  { id: 'member-host', name: '我 (主揪)', avatarColor: '#10B981', isHost: true },
-  { id: 'member-2', name: '小明', avatarColor: '#0EA5E9', isHost: false },
-  { id: 'member-3', name: '小華', avatarColor: '#F59E0B', isHost: false },
+  { id: 'member-host', name: '', avatarColor: '#10B981', isHost: true },
 ];
 
 const DEFAULT_ROOM: Room = {
   id: 'local-room-1',
-  title: '今日美味聚餐 🍲',
-  code: 'SPLIT1',
+  title: '',
+  code: '',
   isLocked: false,
   currency: 'NT$',
   roundingMode: RoundingMode.NEAREST_INTEGER,
@@ -34,6 +32,8 @@ const DEFAULT_ROOM: Room = {
   items: [],
   extraFees: [],
 };
+
+
 
 const SAMPLE_MEMBERS: Member[] = [
   { id: 'sample-m1', name: 'Alice', avatarColor: '#10B981', isHost: true },
@@ -348,20 +348,25 @@ export function useRoomState() {
     });
   }, []);
 
+  const setRoomDirectly = useCallback((newRoomOrUpdater: Room | ((prev: Room) => Room)) => {
+    setRoom(newRoomOrUpdater);
+  }, []);
+
   const resetRoom = useCallback(() => {
     setRoom({
       id: generateId('room'),
-      title: '新聚餐分帳 🍽️',
-      code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+      title: '',
+      code: '',
       isLocked: false,
       currency: 'NT$',
       roundingMode: RoundingMode.NEAREST_INTEGER,
-      members: [{ id: 'host-1', name: '主揪', avatarColor: '#10B981', isHost: true }],
+      members: [{ id: generateId('member'), name: '', avatarColor: '#10B981', isHost: true }],
       items: [],
       extraFees: [],
       paymentInfo: undefined,
     });
   }, []);
+
 
   return {
     room,
@@ -384,5 +389,7 @@ export function useRoomState() {
     setRoundingMode,
     loadSampleData,
     resetRoom,
+    setRoomDirectly,
   };
 }
+

@@ -1,28 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
-import { X, Copy, Check, QrCode, Users, Sparkles } from 'lucide-react';
+import { X, Copy, Check, QrCode, Sparkles } from 'lucide-react';
 import { Room } from '../types/models';
+import { buildFriendShareUrl } from '../utils/url';
+
 
 interface ShareModalProps {
   isOpen: boolean;
   room: Room;
   onClose: () => void;
-  onSwitchToFriendView: () => void;
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   room,
   onClose,
-  onSwitchToFriendView,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:5173';
   const shareCode = room.code || room.id;
-  const shareUrl = `${baseUrl}?room=${encodeURIComponent(shareCode)}&view=friend`;
+  const shareUrl = buildFriendShareUrl(shareCode);
 
   useEffect(() => {
     if (isOpen && canvasRef.current) {
@@ -129,8 +128,9 @@ export const ShareModal: React.FC<ShareModalProps> = ({
 
           {/* Share URL Block */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">協作分享連結 (傳送到 LINE 群組)</label>
+            <label className="text-xs font-semibold text-slate-700">分享連結</label>
             <div className="flex items-center gap-2">
+
               <input
                 type="text"
                 readOnly
@@ -151,22 +151,11 @@ export const ShareModal: React.FC<ShareModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 bg-slate-50/80 border-t border-slate-200 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onSwitchToFriendView();
-            }}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-xs"
-          >
-            <Users className="w-4 h-4 text-slate-500" />
-            <span>進入朋友視圖 (預覽)</span>
-          </button>
+        <div className="p-4 bg-slate-50/80 border-t border-slate-200 flex items-center justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 rounded-xl transition-colors"
+            className="w-full sm:w-auto px-6 py-2.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-xs cursor-pointer"
           >
             關閉
           </button>
@@ -175,3 +164,4 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     </div>
   );
 };
+

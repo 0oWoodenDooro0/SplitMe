@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Split,
-  Users,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useRoomState } from './hooks/useRoomState';
 import { useRoomSync } from './hooks/useRoomSync';
@@ -20,7 +20,7 @@ import { FeeSettingsModal } from './components/FeeSettingsModal';
 import { ShareModal } from './components/ShareModal';
 import { ReceiptExportModal } from './components/ReceiptExportModal';
 import { FriendCheckView } from './components/FriendCheckView';
-import { Item, Member, RoundingMode, SplitShare } from './types/models';
+import { Item, Member, RoundingMode, SplitShare, Room } from './types/models';
 
 export const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -34,6 +34,20 @@ export const App: React.FC = () => {
     return 'host';
   });
 
+  // SPA popstate event listener for browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined' && window.location?.search) {
+        const params = new URLSearchParams(window.location.search);
+        setViewMode(params.get('view') === 'friend' ? 'friend' : 'host');
+      } else {
+        setViewMode('host');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [currentFriendMemberId, setCurrentFriendMemberId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -45,9 +59,12 @@ export const App: React.FC = () => {
     return null;
   });
 
+  const [roomLoadError, setRoomLoadError] = useState<string | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isReceiptExportModalOpen, setIsReceiptExportModalOpen] = useState(false);
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+
+  const lastRegisterAttemptRef = useRef<number>(0);
 
   const {
     room,
@@ -70,9 +87,120 @@ export const App: React.FC = () => {
     setRoundingMode,
     loadSampleData,
     resetRoom,
+    setRoomDirectly,
   } = useRoomState();
 
-  // WebSocket Live Synchronization Hook
+  // Load room from URL parameter (?room=CODE)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get('room');
+      if (roomParam) {
+        fetch(`/api/rooms/${encodeURIComponent(roomParam)}`)
+          .then((res) => {
+            if (res.ok) return res.json();
+            throw new Error(`Failed to load room: ${res.status}`);
+          })
+          .then((loadedRoom: Room) => {
+            setRoomDirectly(loadedRoom);
+            setRoomLoadError(null);
+          })
+          .catch((err) => {
+            console.warn('Could not load room from URL:', err);
+            setRoomLoadError(`找不到代碼為「${roomParam}」的聚餐房間。該聚餐可能已結束或代碼不正確。`);
+          });
+      }
+    }
+  }, [setRoomDirectly]);
+
+  // Auto-register room with server when host starts live mode
+  const registerRoomOnServer = useCallback(
+    async (currentRoom: Room = room, isExplicit = false): Promise<Room | null> => {
+      // Debounce/cooldown auto-register attempts if offline (5s cooldown), unless explicit user action
+      if (!isExplicit && Date.now() - lastRegisterAttemptRef.current < 5000) {
+        return null;
+      }
+      lastRegisterAttemptRef.current = Date.now();
+
+      try {
+        const res = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentRoom.title || '聚餐分帳',
+            members: currentRoom.members,
+            items: currentRoom.items,
+            extraFees: currentRoom.extraFees,
+            currency: currentRoom.currency,
+            roundingMode: currentRoom.roundingMode,
+            paymentInfo: currentRoom.paymentInfo,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const createdRoom: Room = await res.json();
+        setRoomDirectly((prev) => ({
+          ...prev,
+          id: createdRoom.id,
+          code: createdRoom.code,
+        }));
+        return createdRoom;
+      } catch (err) {
+        console.warn('Failed to register room on server:', err);
+        return null;
+      }
+    },
+    [room, setRoomDirectly]
+  );
+
+  useEffect(() => {
+    if (viewMode === 'host' && wizardMode === 'live' && !room.code) {
+      registerRoomOnServer(room);
+    }
+  }, [viewMode, wizardMode, room.code, registerRoomOnServer, room]);
+
+  const handleOpenShareModal = useCallback(async () => {
+    if (!room.code || room.id.startsWith('local-') || room.id.startsWith('room-')) {
+      await registerRoomOnServer(room, true);
+    }
+    setIsShareModalOpen(true);
+  }, [room, registerRoomOnServer]);
+
+  const handleSelectWizardMode = useCallback(
+    async (mode: 'live' | 'offline') => {
+      setWizardMode(mode);
+      if (mode === 'live' && (!room.code || room.id.startsWith('local-') || room.id.startsWith('room-'))) {
+        await registerRoomOnServer(room, true);
+      }
+    },
+    [room, registerRoomOnServer]
+  );
+
+
+  // Sync host changes to server
+  useEffect(() => {
+    if (viewMode === 'host' && wizardMode === 'live' && room.code && room.id && !room.id.startsWith('room-') && !room.id.startsWith('local-')) {
+      const timer = setTimeout(() => {
+        fetch(`/api/rooms/${encodeURIComponent(room.id)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(room),
+        }).catch((err) => {
+          console.warn('Could not sync room to server:', err);
+        });
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, wizardMode, room]);
+
+  const handleRoomUpdatedFromWs = useCallback(
+    (updatedRoom: Room) => {
+      setRoomDirectly(updatedRoom);
+    },
+    [setRoomDirectly]
+  );
+
+  // WebSocket Live Synchronization Hook (connect when valid server room code/id is present and no error)
+  const effectiveRoomId = !roomLoadError ? (room.code || (room.id && !room.id.startsWith('room-') && !room.id.startsWith('local-') ? room.id : '')) : '';
   const {
     activeMemberIds,
     status: syncStatus,
@@ -80,8 +208,9 @@ export const App: React.FC = () => {
     toggleItemCheck,
     lockSettlement,
   } = useRoomSync({
-    roomId: room.id || room.code || 'local-room-1',
+    roomId: effectiveRoomId,
     initialRoom: room,
+    onRoomUpdated: handleRoomUpdatedFromWs,
   });
 
   const [weightModalState, setWeightModalState] = useState<{
@@ -157,11 +286,23 @@ export const App: React.FC = () => {
     } catch {
       // ignore
     }
-    joinRoom(newMember.id, newMember.name);
+    joinRoom(newMember.id, name);
+
+    // Sync new member to backend server
+    if (room.id && !room.id.startsWith('room-') && !room.id.startsWith('local-')) {
+      const updatedMembers = [...room.members.filter((m) => m.id !== newMember.id), newMember];
+      fetch(`/api/rooms/${encodeURIComponent(room.id)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...room, members: updatedMembers }),
+      }).catch((err) => {
+        console.warn('Failed to sync new friend member to server:', err);
+      });
+    }
   };
 
+
   const handleFriendToggleItemCheck = (itemId: string, memberId: string, isChecked: boolean) => {
-    toggleItemSplit(itemId, memberId);
     toggleItemCheck(itemId, memberId, isChecked);
   };
 
@@ -169,7 +310,10 @@ export const App: React.FC = () => {
     lockSettlement(isLocked);
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
+    if (currentStep === 1 && wizardMode === 'live' && (!room.code || room.id.startsWith('local-') || room.id.startsWith('room-'))) {
+      await registerRoomOnServer(room);
+    }
     setCurrentStep((prev) => Math.min(7, prev + 1));
   };
 
@@ -182,6 +326,31 @@ export const App: React.FC = () => {
     setCurrentStep(1);
   };
 
+  // If room failed to load (e.g. 404 / expired)
+  if (roomLoadError) {
+    return (
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl mx-auto flex items-center justify-center">
+            <AlertTriangle className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-xl font-bold text-slate-900">找不到聚餐房間</h2>
+            <p className="text-xs text-slate-500 leading-relaxed">{roomLoadError}</p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-xs"
+            >
+              建立全新聚餐
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If in Friend View mode, render FriendCheckView
   if (viewMode === 'friend') {
     return (
@@ -193,7 +362,6 @@ export const App: React.FC = () => {
         onSelectMember={handleSelectFriendMember}
         onAddMember={handleFriendAddMember}
         onToggleItemCheck={handleFriendToggleItemCheck}
-        onSwitchToHostView={() => setViewMode('host')}
       />
     );
   }
@@ -212,17 +380,6 @@ export const App: React.FC = () => {
                 SplitMe
               </h1>
             </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setViewMode('friend')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all active:scale-95 cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5 text-slate-500" />
-              <span>切換至朋友勾選</span>
-            </button>
           </div>
         </div>
       </header>
@@ -244,10 +401,12 @@ export const App: React.FC = () => {
           {currentStep === 2 && (
             <Step2ModeSelect
               selectedMode={wizardMode}
-              onSelectMode={setWizardMode}
+              onSelectMode={handleSelectWizardMode}
               roomCode={room.code || room.id}
             />
           )}
+
+
 
           {currentStep === 3 && (
             <Step3MemberList
@@ -281,7 +440,7 @@ export const App: React.FC = () => {
               onClearSplit={clearItemSplit}
               onOpenWeightModal={handleOpenWeightModal}
               onToggleLock={handleToggleLock}
-              onOpenShare={() => setIsShareModalOpen(true)}
+              onOpenShare={handleOpenShareModal}
               onUpdateItem={updateItem}
               onRemoveItem={removeItem}
             />
@@ -360,11 +519,8 @@ export const App: React.FC = () => {
         isOpen={isShareModalOpen}
         room={room}
         onClose={() => setIsShareModalOpen(false)}
-        onSwitchToFriendView={() => {
-          setIsShareModalOpen(false);
-          setViewMode('friend');
-        }}
       />
+
 
       <ShareWeightModal
         isOpen={weightModalState.isOpen}
