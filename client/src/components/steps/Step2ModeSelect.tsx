@@ -5,8 +5,8 @@ interface Step2ModeSelectProps {
   selectedMode: 'live' | 'offline';
   onSelectMode: (mode: 'live' | 'offline') => void;
   roomCode?: string;
-  serverStatus?: 'checking' | 'connected' | 'offline';
 }
+
 
 export const Step2ModeSelect: React.FC<Step2ModeSelectProps> = ({
   selectedMode,

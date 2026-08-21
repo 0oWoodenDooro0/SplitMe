@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { X, Copy, Check, QrCode, Sparkles } from 'lucide-react';
 import { Room } from '../types/models';
+import { buildFriendShareUrl } from '../utils/url';
 
 
 interface ShareModalProps {
   isOpen: boolean;
   room: Room;
   onClose: () => void;
-  onSwitchToFriendView?: () => void;
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
@@ -20,9 +20,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:5173';
   const shareCode = room.code || room.id;
-  const shareUrl = `${baseUrl}?room=${encodeURIComponent(shareCode)}&view=friend`;
+  const shareUrl = buildFriendShareUrl(shareCode);
 
   useEffect(() => {
     if (isOpen && canvasRef.current) {

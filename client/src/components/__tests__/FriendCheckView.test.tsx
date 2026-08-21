@@ -108,6 +108,35 @@ describe('FriendCheckView Component', () => {
     expect(handleAddMember).toHaveBeenCalledWith('David');
   });
 
+  it('selects existing member identity instead of adding duplicate when name matches existing member', () => {
+    const handleAddMember = vi.fn();
+    const handleSelectMember = vi.fn();
+
+    render(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId={null}
+        activeMemberIds={['m1']}
+        connectionStatus="connected"
+        onSelectMember={handleSelectMember}
+        onAddMember={handleAddMember}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    const input = screen.getByLabelText(/新增我的名字/i);
+    // Enter "bob" with different casing and whitespace
+    fireEvent.change(input, { target: { value: '  bob  ' } });
+
+    const addBtn = screen.getByRole('button', { name: /加入聚餐|新增並加入/i });
+    fireEvent.click(addBtn);
+
+    // Expect duplicate guard to select existing member 'm2' and NOT call onAddMember
+    expect(handleSelectMember).toHaveBeenCalledWith('m2');
+    expect(handleAddMember).not.toHaveBeenCalled();
+  });
+
+
   it('displays friend items checklist with current checks and estimated amount', () => {
     const handleToggle = vi.fn();
     render(
@@ -232,7 +261,7 @@ describe('FriendCheckView Component', () => {
     expect(header?.className).toContain('border-slate-200');
   });
 
-  it('displays connection status badge accurately for connected and connecting states', () => {
+  it('displays connection status badge accurately for connected, connecting, and disconnected states', () => {
     const { rerender } = render(
       <FriendCheckView
         room={mockRoom}
@@ -245,7 +274,7 @@ describe('FriendCheckView Component', () => {
       />
     );
 
-    expect(screen.getByText('已連線')).toBeInTheDocument();
+    expect(screen.getByText('🟢 已連線')).toBeInTheDocument();
 
     rerender(
       <FriendCheckView
@@ -259,8 +288,23 @@ describe('FriendCheckView Component', () => {
       />
     );
 
-    expect(screen.getByText('連線中...')).toBeInTheDocument();
+    expect(screen.getByText('🟡 連線中...')).toBeInTheDocument();
+
+    rerender(
+      <FriendCheckView
+        room={mockRoom}
+        currentMemberId="m2"
+        activeMemberIds={['m1', 'm2']}
+        connectionStatus="disconnected"
+        onSelectMember={vi.fn()}
+        onAddMember={vi.fn()}
+        onToggleItemCheck={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('🔴 已斷線')).toBeInTheDocument();
   });
 });
+
 
 

@@ -32,6 +32,7 @@ export function useRoomSync({
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<any>(null);
   const isExplicitCloseRef = useRef(false);
+  const lastJoinedMemberRef = useRef<{ memberId: string; memberName?: string } | null>(null);
 
   // Keep room updated if initialRoom changes and we haven't synced yet
   useEffect(() => {
@@ -66,7 +67,16 @@ export function useRoomSync({
       ws.onopen = () => {
         setStatus('connected');
         setError(null);
+        // Auto re-join on reconnect if a member was previously active
+        if (lastJoinedMemberRef.current) {
+          sendJson({
+            type: 'JOIN_ROOM',
+            memberId: lastJoinedMemberRef.current.memberId,
+            memberName: lastJoinedMemberRef.current.memberName,
+          });
+        }
       };
+
 
       ws.onmessage = (event) => {
         try {
@@ -176,10 +186,12 @@ export function useRoomSync({
   // Client Actions
   const joinRoom = useCallback(
     (memberId: string, memberName?: string) => {
+      lastJoinedMemberRef.current = { memberId, memberName };
       sendJson({ type: 'JOIN_ROOM', memberId, memberName });
     },
     [sendJson]
   );
+
 
   const toggleItemCheck = useCallback(
     (itemId: string, memberId: string, isChecked: boolean) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Split,
   ArrowLeft,
@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react';
-
 import { useRoomState } from './hooks/useRoomState';
 import { useRoomSync } from './hooks/useRoomSync';
 import { Step1HostName } from './components/steps/Step1HostName';
@@ -27,13 +26,27 @@ export const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [wizardMode, setWizardMode] = useState<'live' | 'offline'>('live');
 
-  const [viewMode] = useState<'host' | 'friend'>(() => {
+  const [viewMode, setViewMode] = useState<'host' | 'friend'>(() => {
     if (typeof window !== 'undefined' && window.location?.search) {
       const params = new URLSearchParams(window.location.search);
       return params.get('view') === 'friend' ? 'friend' : 'host';
     }
     return 'host';
   });
+
+  // SPA popstate event listener for browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      if (typeof window !== 'undefined' && window.location?.search) {
+        const params = new URLSearchParams(window.location.search);
+        setViewMode(params.get('view') === 'friend' ? 'friend' : 'host');
+      } else {
+        setViewMode('host');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const [currentFriendMemberId, setCurrentFriendMemberId] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
@@ -50,6 +63,8 @@ export const App: React.FC = () => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isReceiptExportModalOpen, setIsReceiptExportModalOpen] = useState(false);
   const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
+
+  const lastRegisterAttemptRef = useRef<number>(0);
 
   const {
     room,
@@ -99,34 +114,43 @@ export const App: React.FC = () => {
   }, [setRoomDirectly]);
 
   // Auto-register room with server when host starts live mode
-  const registerRoomOnServer = useCallback(async (currentRoom: Room = room): Promise<Room | null> => {
-    try {
-      const res = await fetch('/api/rooms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: currentRoom.title || '聚餐分帳',
-          members: currentRoom.members,
-          items: currentRoom.items,
-          extraFees: currentRoom.extraFees,
-          currency: currentRoom.currency,
-          roundingMode: currentRoom.roundingMode,
-          paymentInfo: currentRoom.paymentInfo,
-        }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const createdRoom: Room = await res.json();
-      setRoomDirectly((prev) => ({
-        ...prev,
-        id: createdRoom.id,
-        code: createdRoom.code,
-      }));
-      return createdRoom;
-    } catch (err) {
-      console.warn('Failed to register room on server:', err);
-      return null;
-    }
-  }, [room, setRoomDirectly]);
+  const registerRoomOnServer = useCallback(
+    async (currentRoom: Room = room, isExplicit = false): Promise<Room | null> => {
+      // Debounce/cooldown auto-register attempts if offline (5s cooldown), unless explicit user action
+      if (!isExplicit && Date.now() - lastRegisterAttemptRef.current < 5000) {
+        return null;
+      }
+      lastRegisterAttemptRef.current = Date.now();
+
+      try {
+        const res = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: currentRoom.title || '聚餐分帳',
+            members: currentRoom.members,
+            items: currentRoom.items,
+            extraFees: currentRoom.extraFees,
+            currency: currentRoom.currency,
+            roundingMode: currentRoom.roundingMode,
+            paymentInfo: currentRoom.paymentInfo,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const createdRoom: Room = await res.json();
+        setRoomDirectly((prev) => ({
+          ...prev,
+          id: createdRoom.id,
+          code: createdRoom.code,
+        }));
+        return createdRoom;
+      } catch (err) {
+        console.warn('Failed to register room on server:', err);
+        return null;
+      }
+    },
+    [room, setRoomDirectly]
+  );
 
   useEffect(() => {
     if (viewMode === 'host' && wizardMode === 'live' && !room.code) {
@@ -136,17 +160,21 @@ export const App: React.FC = () => {
 
   const handleOpenShareModal = useCallback(async () => {
     if (!room.code || room.id.startsWith('local-') || room.id.startsWith('room-')) {
-      await registerRoomOnServer(room);
+      await registerRoomOnServer(room, true);
     }
     setIsShareModalOpen(true);
   }, [room, registerRoomOnServer]);
 
-  const handleSelectWizardMode = useCallback(async (mode: 'live' | 'offline') => {
-    setWizardMode(mode);
-    if (mode === 'live' && (!room.code || room.id.startsWith('local-') || room.id.startsWith('room-'))) {
-      await registerRoomOnServer(room);
-    }
-  }, [room, registerRoomOnServer]);
+  const handleSelectWizardMode = useCallback(
+    async (mode: 'live' | 'offline') => {
+      setWizardMode(mode);
+      if (mode === 'live' && (!room.code || room.id.startsWith('local-') || room.id.startsWith('room-'))) {
+        await registerRoomOnServer(room, true);
+      }
+    },
+    [room, registerRoomOnServer]
+  );
+
 
   // Sync host changes to server
   useEffect(() => {

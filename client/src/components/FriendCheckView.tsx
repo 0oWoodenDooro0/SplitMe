@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Utensils,
   Lock,
@@ -13,6 +13,7 @@ import { Room } from '../types/models';
 import { MemberAvatar } from './MemberAvatar';
 import { calculateSettlement } from '../core/financialCalculator';
 import { formatCurrency } from '../utils/formatters';
+import { buildFriendShareUrl } from '../utils/url';
 
 interface FriendCheckViewProps {
   room: Room;
@@ -23,7 +24,6 @@ interface FriendCheckViewProps {
   onAddMember: (name: string) => void;
   onToggleItemCheck: (itemId: string, memberId: string, isChecked: boolean) => void;
 }
-
 
 export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
   room,
@@ -40,9 +40,7 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
 
   const handleCopyShareUrl = async () => {
     try {
-      const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:5173';
-      const shareCode = room.code || room.id;
-      const shareUrl = `${baseUrl}?room=${encodeURIComponent(shareCode)}&view=friend`;
+      const shareUrl = buildFriendShareUrl(room.code || room.id);
       await navigator.clipboard.writeText(shareUrl);
       setCopiedShare(true);
       setTimeout(() => setCopiedShare(false), 2000);
@@ -52,17 +50,51 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
   };
 
   const currentMember = room.members.find((m) => m.id === currentMemberId) || null;
-  const settlement = calculateSettlement(room);
+  const settlement = useMemo(() => calculateSettlement(room), [room]);
   const personalSummary = currentMemberId ? settlement.memberSummaries[currentMemberId] : null;
 
   const handleAddNewMember = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMemberName.trim()) {
-      onAddMember(newMemberName.trim());
+    const trimmed = newMemberName.trim();
+    if (trimmed) {
+      // Duplicate Name Guard: If member already exists, select them instead of creating a duplicate
+      const existingMember = room.members.find(
+        (m) => m.name.trim().toLowerCase() === trimmed.toLowerCase()
+      );
+      if (existingMember) {
+        onSelectMember(existingMember.id);
+      } else {
+        onAddMember(trimmed);
+      }
       setNewMemberName('');
       setIsSwitchingMember(false);
     }
   };
+
+  const connectionBadge = useMemo(() => {
+    switch (connectionStatus) {
+      case 'connected':
+        return {
+          className: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+          icon: <Wifi className="w-3 h-3 text-emerald-600" />,
+          label: '🟢 已連線',
+        };
+      case 'disconnected':
+      case 'error':
+        return {
+          className: 'bg-rose-50 border-rose-200 text-rose-700',
+          icon: <WifiOff className="w-3 h-3 text-rose-600" />,
+          label: '🔴 已斷線',
+        };
+      default:
+        return {
+          className: 'bg-amber-50 border-amber-200 text-amber-700',
+          icon: <WifiOff className="w-3 h-3 text-amber-600" />,
+          label: '🟡 連線中...',
+        };
+    }
+  }, [connectionStatus]);
+
 
   const isLocked = Boolean(room.isLocked);
   const displayTitle = room.title || '聚餐分帳';
@@ -205,20 +237,12 @@ export const FriendCheckView: React.FC<FriendCheckViewProps> = ({
             </button>
 
             <div
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
-                connectionStatus === 'connected'
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : 'bg-amber-50 border-amber-200 text-amber-700'
-              }`}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border ${connectionBadge.className}`}
             >
-              {connectionStatus === 'connected' ? (
-                <Wifi className="w-3 h-3 text-emerald-600" />
-              ) : (
-                <WifiOff className="w-3 h-3 text-amber-600" />
-              )}
-              <span>{connectionStatus === 'connected' ? '已連線' : '連線中...'}</span>
-
+              {connectionBadge.icon}
+              <span>{connectionBadge.label}</span>
             </div>
+
           </div>
         </div>
       </header>
